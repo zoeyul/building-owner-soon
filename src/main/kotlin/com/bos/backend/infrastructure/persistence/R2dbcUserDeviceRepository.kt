@@ -2,6 +2,7 @@ package com.bos.backend.infrastructure.persistence
 
 import com.bos.backend.domain.user.entity.UserDevice
 import com.bos.backend.domain.user.repository.UserDeviceRepository
+import kotlinx.coroutines.flow.Flow
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Repository
 
@@ -10,6 +11,8 @@ interface UserDeviceCoroutineRepository : CoroutineCrudRepository<UserDevice, Lo
         userId: Long,
         deviceId: String,
     ): UserDevice?
+
+    fun findByUserId(userId: Long): Flow<UserDevice>
 }
 
 @Repository
@@ -20,6 +23,8 @@ class R2dbcUserDeviceRepositoryImpl(
         userId: Long,
         deviceId: String,
     ): UserDevice? = coroutineRepository.findByUserIdAndDeviceId(userId, deviceId)
+
+    override fun findByUserId(userId: Long): Flow<UserDevice> = coroutineRepository.findByUserId(userId)
 
     override suspend fun save(userDevice: UserDevice): UserDevice = coroutineRepository.save(userDevice)
 
