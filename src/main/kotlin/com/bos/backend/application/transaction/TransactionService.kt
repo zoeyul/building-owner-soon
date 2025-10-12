@@ -11,7 +11,6 @@ import com.bos.backend.domain.transaction.enum.TransactionType
 import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
 import com.bos.backend.domain.transaction.repository.TransactionRepository
 import com.bos.backend.presentation.transaction.dto.CreateTransactionRequestDTO
-import com.bos.backend.presentation.transaction.dto.DebtSummaryDTO
 import com.bos.backend.presentation.transaction.dto.DebtSummaryResponseDTO
 import com.bos.backend.presentation.transaction.dto.RelationshipSummaryDTO
 import com.bos.backend.presentation.transaction.dto.RepaymentScheduleDetailDTO
@@ -353,11 +352,8 @@ class TransactionService(
             )
 
         return DebtSummaryResponseDTO(
-            debtSummary =
-                DebtSummaryDTO(
-                    lendSummary = lendSummary,
-                    borrowSummary = borrowSummary,
-                ),
+            lendSummary = lendSummary,
+            borrowSummary = borrowSummary,
         )
     }
 

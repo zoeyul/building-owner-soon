@@ -2347,13 +2347,6 @@ components:
     DebtSummaryResponse:
       type: object
       required:
-        - debtSummary
-      properties:
-        debtSummary:
-          $ref: "#/components/schemas/DebtSummary"
-    DebtSummary:
-      type: object
-      required:
         - lendSummary
         - borrowSummary
       properties:
