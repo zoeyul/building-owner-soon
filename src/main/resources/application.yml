@@ -57,6 +57,7 @@ cors:
     - "http://localhost:3000"
     - "http://192.168.0.6:3000"
     - "https://192.168.0.6:3000"
+    - "https://frontend-web-iota-three.vercel.app"
   allowed-methods:
     - "HEAD"
     - "GET"
