@@ -4,6 +4,7 @@ import com.bos.backend.domain.push.PushMessage
 import com.google.firebase.messaging.BatchResponse
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
+import com.google.firebase.messaging.MessagingErrorCode
 import com.google.firebase.messaging.MulticastMessage
 import com.google.firebase.messaging.Notification
 import kotlinx.coroutines.Dispatchers
@@ -11,20 +12,10 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
-/**
- * FCM 푸시 알림 전송 서비스
- */
 @Service
 class FcmPushService {
     private val logger = LoggerFactory.getLogger(FcmPushService::class.java)
 
-    /**
-     * 단일 디바이스에 푸시 메시지 전송
-     *
-     * @param token FCM 등록 토큰
-     * @param message 푸시 메시지
-     * @return 전송 성공 여부
-     */
     suspend fun sendToDevice(
         token: String,
         message: PushMessage,
@@ -50,13 +41,6 @@ class FcmPushService {
         }
     }
 
-    /**
-     * 여러 디바이스에 동일한 푸시 메시지 전송 (멀티캐스트)
-     *
-     * @param tokens FCM 등록 토큰 리스트 (최대 500개)
-     * @param message 푸시 메시지
-     * @return 전송 결과 (성공 개수, 실패 개수)
-     */
     suspend fun sendToMultipleDevices(
         tokens: List<String>,
         message: PushMessage,
@@ -95,7 +79,6 @@ class FcmPushService {
                     "FCM 멀티캐스트 전송 완료: 성공=${response.successCount}, 실패=${response.failureCount}",
                 )
 
-                // 실패한 토큰 로깅
                 if (response.failureCount > 0) {
                     response.responses.forEachIndexed { index, sendResponse ->
                         if (!sendResponse.isSuccessful) {
@@ -124,30 +107,26 @@ class FcmPushService {
         }
     }
 
-    /**
-     * FCM 전송 예외 처리
-     */
     private fun handleMessagingException(
         exception: FirebaseMessagingException,
         token: String,
     ) {
         when (exception.messagingErrorCode) {
             // 유효하지 않은 토큰 - DB에서 삭제 필요
-            com.google.firebase.messaging.MessagingErrorCode.INVALID_ARGUMENT,
-            com.google.firebase.messaging.MessagingErrorCode.UNREGISTERED,
+            MessagingErrorCode.INVALID_ARGUMENT,
+            MessagingErrorCode.UNREGISTERED,
             -> {
                 logger.warn("유효하지 않은 FCM 토큰: token=$token, DB에서 삭제 필요")
                 // TODO: UserDeviceRepository를 통해 토큰 삭제
             }
             // 할당량 초과 - Rate Limiting 필요
-            com.google.firebase.messaging.MessagingErrorCode.QUOTA_EXCEEDED -> {
+            MessagingErrorCode.QUOTA_EXCEEDED -> {
                 logger.error("FCM 할당량 초과: 전송 속도 제한 필요")
             }
             // 내부 오류 - 재시도 필요
-            com.google.firebase.messaging.MessagingErrorCode.INTERNAL -> {
+            MessagingErrorCode.INTERNAL -> {
                 logger.error("FCM 내부 오류: 재시도 필요")
             }
-            // 기타 오류
             else -> {
                 logger.error("FCM 알 수 없는 오류: errorCode=${exception.messagingErrorCode}")
             }
@@ -160,9 +139,6 @@ class FcmPushService {
     }
 }
 
-/**
- * 푸시 전송 결과
- */
 data class PushSendResult(
     val successCount: Int,
     val failureCount: Int,

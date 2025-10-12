@@ -1,9 +1,11 @@
 package com.bos.backend.application.notification
 
 import com.bos.backend.application.mapper.NotificationMapper
+import com.bos.backend.application.push.FcmPushService
 import com.bos.backend.domain.notification.entity.Notification
 import com.bos.backend.domain.notification.enums.NotificationCategory
 import com.bos.backend.domain.notification.repository.NotificationRepository
+import com.bos.backend.domain.user.repository.UserDeviceRepository
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -14,8 +16,16 @@ import kotlinx.coroutines.flow.flowOf
 
 class NotificationServiceTest : StringSpec({
     val notificationRepository = mockk<NotificationRepository>()
+    val fcmPushService = mockk<FcmPushService>()
+    val userDeviceRepository = mockk<UserDeviceRepository>()
     val notificationMapper = NotificationMapper.INSTANCE
-    val notificationService = NotificationService(notificationRepository, notificationMapper)
+    val notificationService =
+        NotificationService(
+            notificationRepository,
+            notificationMapper,
+            fcmPushService,
+            userDeviceRepository,
+        )
 
     "알림 목록을 조회할 수 있다" {
         // Given
