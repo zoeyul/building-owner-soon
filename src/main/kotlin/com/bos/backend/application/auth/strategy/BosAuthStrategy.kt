@@ -25,7 +25,9 @@ class BosAuthStrategy(
         requireNotNull(request.email) { "Email is required for signup" }
         requireNotNull(request.password) { "Password is required for BOS signup" }
 
-        require(!userAuthRepository.existsByEmail(request.email)) { "User already exists with email: ${request.email}" }
+        require(userAuthRepository.findByEmailAndProviderType(request.email, providerType.value) == null) {
+            "User already exists with email: ${request.email}"
+        }
 
         val user =
             userRepository.save(
@@ -55,6 +57,7 @@ class BosAuthStrategy(
     }
 
     override suspend fun signIn(request: SignInRequestDTO): AuthResult {
+        requireNotNull(request.email) { "Email is required for BOS signin" }
         requireNotNull(request.password) { "Password is required for BOS signin" }
 
         val userAuth =

@@ -2,6 +2,7 @@ package com.bos.backend.infrastructure
 
 import com.bos.backend.application.service.EmailVerificationService
 import com.bos.backend.domain.auth.enums.EmailVerificationType
+import com.bos.backend.domain.user.enum.ProviderType
 import com.bos.backend.domain.user.repository.UserAuthRepository
 import com.bos.backend.infrastructure.event.EmailVerificationEvent
 import com.bos.backend.infrastructure.external.EmailVerificationCodeStore
@@ -55,7 +56,8 @@ class EmailVerificationServiceImpl(
         return isValid
     }
 
-    override suspend fun isEmailDuplicated(email: String): Boolean = userAuthRepository.existsByEmail(email)
+    override suspend fun isEmailDuplicated(email: String): Boolean =
+        userAuthRepository.findByEmailAndProviderType(email, ProviderType.BOS.value) != null
 
     override suspend fun isVerificationCodeExpired(
         email: String,

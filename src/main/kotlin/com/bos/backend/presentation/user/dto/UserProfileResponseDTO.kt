@@ -5,7 +5,7 @@ import java.time.Instant
 
 data class UserProfileResponseDTO(
     val id: Long,
-    val email: String,
+    val email: String?,
     val nickname: String,
     val character: Character? = null,
     val isNotificationAllowed: Boolean,

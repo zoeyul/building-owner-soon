@@ -18,7 +18,7 @@ data class UserAuth(
     @Column("provider_id")
     val providerId: String? = null,
     @Column("email")
-    val email: String,
+    val email: String?,
     @Column("password_hash")
     val passwordHash: String? = null,
     @Column("last_login_at")

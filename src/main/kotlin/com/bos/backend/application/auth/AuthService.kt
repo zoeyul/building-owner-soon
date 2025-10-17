@@ -134,7 +134,7 @@ class AuthService(
         }
 
         return CheckEmailResponse(
-            email = userAuth.email,
+            email = userAuth.email!!,
             isExist = true,
             provider = userAuth.providerType,
         )
@@ -161,7 +161,7 @@ class AuthService(
             userAuthRepository.findByUserId(userId)
                 ?: throw CustomException(AuthErrorCode.USER_NOT_FOUND)
 
-        if (!userAuthRepository.verifyPassword(userAuth.email, request.currentPassword)) {
+        if (!userAuthRepository.verifyPassword(userAuth.email!!, request.currentPassword)) {
             throw CustomException(AuthErrorCode.INVALID_PASSWORD)
         }
 
