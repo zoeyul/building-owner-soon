@@ -5,11 +5,12 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
 
-// @Configuration
+@Configuration
 class FcmConfiguration {
     @Value("\${firebase.credentials-path:}")
     private val credentialsPath: String = ""

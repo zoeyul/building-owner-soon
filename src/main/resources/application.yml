@@ -45,6 +45,9 @@ app:
     bucket-name: ${s3-bucket-name}
     base-url: ${s3-base-url}
 
+firebase:
+  credentials-path: credentials/firebase-service-account.json
+  credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
 logging:
   level:
     org.springframework.data.r2dbc: DEBUG
