@@ -88,6 +88,19 @@ class TransactionController(
             createRepaymentRequestDTO,
         )
 
+    @PostMapping("/{transactionId}/repayments")
+    @ResponseStatus(HttpStatus.CREATED)
+    suspend fun addFlexibleRepayment(
+        @AuthenticationPrincipal userId: String,
+        @PathVariable transactionId: Long,
+        @Valid @RequestBody createRepaymentRequestDTO: CreateRepaymentRequestDTO,
+    ): RepaymentScheduleItemDTO =
+        repaymentScheduleService.addFlexibleRepayment(
+            userId.toLong(),
+            transactionId,
+            createRepaymentRequestDTO,
+        )
+
     @GetMapping("/summary")
     @ResponseStatus(HttpStatus.OK)
     suspend fun getTransactionSummary(

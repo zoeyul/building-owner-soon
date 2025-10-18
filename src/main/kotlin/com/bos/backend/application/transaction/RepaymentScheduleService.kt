@@ -90,6 +90,8 @@ class RepaymentScheduleService(
 
         val savedSchedule = repaymentScheduleRepository.save(updatedSchedule)
 
+        updateTransactionCompletedAmount(transaction, transactionId)
+
         return generateRepaymentItems(listOf(savedSchedule)).first()
     }
 
@@ -104,6 +106,65 @@ class RepaymentScheduleService(
             transaction.userId != userId
         ) {
             throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        }
+    }
+
+    suspend fun addFlexibleRepayment(
+        userId: Long,
+        transactionId: Long,
+        createRepaymentRequestDTO: CreateRepaymentRequestDTO,
+    ): RepaymentScheduleItemDTO {
+        val transaction =
+            transactionRepository.findById(transactionId)
+                ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+
+        validateFlexibleRepaymentRequest(transaction, userId, createRepaymentRequestDTO)
+
+        val newSchedule =
+            RepaymentSchedule(
+                transactionId = transactionId,
+                scheduledDate = createRepaymentRequestDTO.repaymentDate,
+                scheduledAmount = createRepaymentRequestDTO.repaymentAmount,
+                actualDate = createRepaymentRequestDTO.repaymentDate,
+                actualAmount = createRepaymentRequestDTO.repaymentAmount,
+                status = RepaymentStatus.COMPLETED,
+            )
+
+        val savedSchedule = repaymentScheduleRepository.save(newSchedule)
+
+        updateTransactionCompletedAmount(transaction, transactionId)
+
+        return generateRepaymentItems(listOf(savedSchedule)).first()
+    }
+
+    private suspend fun updateTransactionCompletedAmount(
+        transaction: Transaction,
+        transactionId: Long,
+    ) {
+        val allSchedules = repaymentScheduleRepository.findByTransactionId(transactionId)
+        val totalCompletedAmount =
+            allSchedules
+                .filter { it.status == RepaymentStatus.COMPLETED }
+                .sumOf { it.actualAmount ?: java.math.BigDecimal.ZERO }
+        val updatedTransaction = transaction.updateCompletedAmount(totalCompletedAmount)
+        transactionRepository.save(updatedTransaction)
+    }
+
+    private fun validateFlexibleRepaymentRequest(
+        transaction: Transaction,
+        userId: Long,
+        createRepaymentRequestDTO: CreateRepaymentRequestDTO,
+    ) {
+        if (transaction.userId != userId) {
+            throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        }
+
+        if (transaction.repaymentType != RepaymentType.FLEXIBLE) {
+            throw CustomException(CommonErrorCode.REPAYMENT_TYPE_MISMATCH)
+        }
+
+        if (createRepaymentRequestDTO.repaymentAmount > transaction.remainingAmount()) {
+            throw CustomException(CommonErrorCode.AMOUNT_EXCEEDS_REMAINING)
         }
     }
 }
