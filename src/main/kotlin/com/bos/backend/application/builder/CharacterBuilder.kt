@@ -3,8 +3,8 @@ package com.bos.backend.application.builder
 import com.bos.backend.application.service.CharacterAssetService
 import com.bos.backend.domain.profile.enums.ProfileAssetType
 import com.bos.backend.domain.transaction.entity.CounterpartCharacter
-import com.bos.backend.domain.user.entity.Character
 import com.bos.backend.domain.user.entity.CharacterAsset
+import com.bos.backend.domain.user.entity.ProfileCharacter
 import com.bos.backend.domain.user.factory.CharacterFactory
 import com.bos.backend.presentation.transaction.dto.CounterpartCharacterDTO
 import com.bos.backend.presentation.user.dto.UpdateCharacterDTO
@@ -16,11 +16,11 @@ class CharacterBuilder(
 ) {
     suspend fun buildCharacter(
         characterDTO: UpdateCharacterDTO,
-        currentCharacter: Character?,
-    ): Character {
+        currentCharacter: ProfileCharacter?,
+    ): ProfileCharacter {
         val baseCharacter = currentCharacter ?: CharacterFactory.createDefaultCharacter(characterAssetService)
 
-        return Character(
+        return ProfileCharacter(
             face =
                 buildCharacterAsset(
                     dtoValue = characterDTO.face,

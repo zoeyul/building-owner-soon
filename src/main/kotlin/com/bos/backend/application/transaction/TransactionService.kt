@@ -97,8 +97,21 @@ class TransactionService(
         val (borrower, lender) = determineBorrowerAndLender(transaction, userProfile)
         val calculatedMonthlyAmount = calculateMonthlyAmount(transaction, transactionId)
 
+        val profileCharacter = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        val character =
+            com.bos.backend.domain.user.entity.Character(
+                face = profileCharacter.face,
+                hand = profileCharacter.hand,
+                skinColor = profileCharacter.skinColor,
+                bang = profileCharacter.bang,
+                backHair = profileCharacter.backHair,
+                eyes = profileCharacter.eyes,
+                mouth = profileCharacter.mouth,
+            )
+
         return TransactionDetailResponseDTO(
-            userProfileImage = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND),
+            userProfileImage = character,
+            transactionType = transaction.transactionType,
             totalAmount = transaction.totalAmount,
             remainingAmount = transaction.remainingAmount(),
             repaymentType = transaction.repaymentType,
@@ -141,20 +154,20 @@ class TransactionService(
     private fun mapToRepaymentScheduleDetailDTO(schedule: RepaymentSchedule) =
         RepaymentScheduleDetailDTO(
             id = schedule.id!!,
-            date =
+            status = schedule.status.name,
+            displayDate =
                 if (schedule.status.name == "COMPLETED") {
                     schedule.actualDate?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                         ?: schedule.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 } else {
                     schedule.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 },
-            amount =
+            displayAmount =
                 if (schedule.status.name == "COMPLETED") {
                     schedule.actualAmount ?: schedule.scheduledAmount
                 } else {
                     schedule.scheduledAmount
                 },
-            status = schedule.status.name,
         )
 
     suspend fun deleteTransaction(

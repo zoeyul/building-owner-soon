@@ -2,7 +2,7 @@ package com.bos.backend.domain.user.factory
 
 import com.bos.backend.application.service.CharacterAssetService
 import com.bos.backend.domain.profile.enums.ProfileAssetType
-import com.bos.backend.domain.user.entity.Character
+import com.bos.backend.domain.user.entity.ProfileCharacter
 
 object CharacterFactory {
     object DefaultIds {
@@ -19,8 +19,8 @@ object CharacterFactory {
         const val SKIN_COLOR = "#FFFFFF"
     }
 
-    suspend fun createDefaultCharacter(characterAssetService: CharacterAssetService): Character =
-        Character(
+    suspend fun createDefaultCharacter(characterAssetService: CharacterAssetService): ProfileCharacter =
+        ProfileCharacter(
             face = characterAssetService.createCharacterAsset(DefaultIds.FACE, ProfileAssetType.FACE),
             hand = characterAssetService.createCharacterAsset(DefaultIds.HAND, ProfileAssetType.HAND),
             skinColor = DefaultValues.SKIN_COLOR,
