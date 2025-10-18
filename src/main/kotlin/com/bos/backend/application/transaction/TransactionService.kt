@@ -97,8 +97,20 @@ class TransactionService(
         val (borrower, lender) = determineBorrowerAndLender(transaction, userProfile)
         val calculatedMonthlyAmount = calculateMonthlyAmount(transaction, transactionId)
 
+        val profileCharacter = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        val character =
+            com.bos.backend.domain.user.entity.Character(
+                face = profileCharacter.face,
+                hand = profileCharacter.hand,
+                skinColor = profileCharacter.skinColor,
+                bang = profileCharacter.bang,
+                backHair = profileCharacter.backHair,
+                eyes = profileCharacter.eyes,
+                mouth = profileCharacter.mouth,
+            )
+
         return TransactionDetailResponseDTO(
-            userProfileImage = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND),
+            userProfileImage = character,
             transactionType = transaction.transactionType,
             totalAmount = transaction.totalAmount,
             remainingAmount = transaction.remainingAmount(),
