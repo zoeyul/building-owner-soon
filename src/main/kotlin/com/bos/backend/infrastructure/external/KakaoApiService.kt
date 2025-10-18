@@ -19,7 +19,7 @@ class KakaoApiService(
 
         val id = response["id"].toString()
         val kakaoAccount = response["kakao_account"] as Map<String, Any>
-        val email = kakaoAccount["email"] as String
+        val email = kakaoAccount["email"] as String?
 
         return KakaoUserInfo(id = id, email = email)
     }
@@ -27,5 +27,5 @@ class KakaoApiService(
 
 data class KakaoUserInfo(
     val id: String,
-    val email: String,
+    val email: String?,
 )

@@ -29,7 +29,7 @@ class KakaoAuthStrategy(
         requireNotNull(request.providerAccessToken) { "Provider access token is required for Kakao signup" }
 
         // 카카오 토큰 검증
-        require(validateProviderToken(request.providerAccessToken, request.providerId, request.email)) {
+        require(validateProviderToken(request.providerAccessToken, request.providerId)) {
             "Invalid Kakao token or user info mismatch"
         }
 
@@ -87,13 +87,10 @@ class KakaoAuthStrategy(
     private suspend fun validateProviderToken(
         token: String,
         providerId: String?,
-        email: String?,
     ): Boolean =
         try {
             val kakaoUserInfo = kakaoApiService.getUserInfo(token)
-            val providerIdMatches = kakaoUserInfo.id == providerId
-            val emailMatches = email == null || kakaoUserInfo.email == email
-            providerIdMatches && emailMatches
+            kakaoUserInfo.id == providerId
         } catch (e: RuntimeException) {
             logger.error("Kakao token validation failed: ${e.message}", e)
             false
