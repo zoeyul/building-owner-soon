@@ -99,6 +99,7 @@ class TransactionService(
 
         return TransactionDetailResponseDTO(
             userProfileImage = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND),
+            transactionType = transaction.transactionType,
             totalAmount = transaction.totalAmount,
             remainingAmount = transaction.remainingAmount(),
             repaymentType = transaction.repaymentType,

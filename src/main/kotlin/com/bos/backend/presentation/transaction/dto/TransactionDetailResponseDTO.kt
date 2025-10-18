@@ -1,11 +1,13 @@
 package com.bos.backend.presentation.transaction.dto
 
 import com.bos.backend.domain.transaction.enum.RepaymentType
+import com.bos.backend.domain.transaction.enum.TransactionType
 import com.bos.backend.domain.user.entity.Character
 import java.math.BigDecimal
 
 data class TransactionDetailResponseDTO(
     val userProfileImage: Character,
+    val transactionType: TransactionType,
     val totalAmount: BigDecimal,
     val remainingAmount: BigDecimal,
     val repaymentType: RepaymentType,
