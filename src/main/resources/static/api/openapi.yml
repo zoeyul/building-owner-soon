@@ -1150,6 +1150,25 @@ components:
           $ref: "#/components/schemas/ProfileAsset"
         mouth:
           $ref: "#/components/schemas/ProfileAsset"
+    ProfileCharacter:
+      type: object
+      properties:
+        face:
+          $ref: "#/components/schemas/ProfileAsset"
+        hand:
+          $ref: "#/components/schemas/ProfileAsset"
+        skinColor:
+          type: string
+          description: 피부색
+          example: #FFDBAC
+        bang:
+          $ref: "#/components/schemas/ProfileAsset"
+        backHair:
+          $ref: "#/components/schemas/ProfileAsset"
+        eyes:
+          $ref: "#/components/schemas/ProfileAsset"
+        mouth:
+          $ref: "#/components/schemas/ProfileAsset"
         home:
           $ref: "#/components/schemas/ProfileAsset"
     CounterpartCharacter:
@@ -1258,7 +1277,7 @@ components:
           description: 유저의 닉네임
           example: "홍길동"
         character:
-          $ref: "#/components/schemas/Character"
+          $ref: "#/components/schemas/ProfileCharacter"
         isNotificationAllowed:
           type: boolean
           description: |-
@@ -2221,6 +2240,7 @@ components:
       type: object
       required:
         - userProfileImage
+        - transactionType
         - totalAmount
         - remainingAmount
         - repaymentType
@@ -2230,6 +2250,8 @@ components:
       properties:
         userProfileImage:
           $ref: "#/components/schemas/Character"
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
         totalAmount:
           type: number
           format: decimal
@@ -2270,29 +2292,29 @@ components:
       type: object
       required:
         - id
-        - date
-        - amount
         - status
+        - displayDate
+        - displayAmount
       properties:
         id:
           type: integer
           format: int64
           description: 상환 스케줄 ID
           example: 456
-        date:
-          type: string
-          format: date
-          description: 상환일 (완료시 실제 완료일, 미완료시 예정일)
-          example: "2025-02-15"
-        amount:
-          type: number
-          format: decimal
-          description: 상환 금액 (완료시 실제 금액, 미완료시 예정 금액)
-          example: 50000
         status:
           type: string
           description: 상환 상태
           example: "SCHEDULED"
+        displayDate:
+          type: string
+          format: date
+          description: 상환일 (완료시 실제 완료일, 미완료시 예정일)
+          example: "2025-02-15"
+        displayAmount:
+          type: number
+          format: decimal
+          description: 상환 금액 (완료시 실제 금액, 미완료시 예정 금액)
+          example: 50000
     RepaymentScheduleItem:
       type: object
       required:
