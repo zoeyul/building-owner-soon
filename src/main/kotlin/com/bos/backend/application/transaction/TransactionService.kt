@@ -141,20 +141,20 @@ class TransactionService(
     private fun mapToRepaymentScheduleDetailDTO(schedule: RepaymentSchedule) =
         RepaymentScheduleDetailDTO(
             id = schedule.id!!,
-            date =
+            status = schedule.status.name,
+            displayDate =
                 if (schedule.status.name == "COMPLETED") {
                     schedule.actualDate?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                         ?: schedule.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 } else {
                     schedule.scheduledDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 },
-            amount =
+            displayAmount =
                 if (schedule.status.name == "COMPLETED") {
                     schedule.actualAmount ?: schedule.scheduledAmount
                 } else {
                     schedule.scheduledAmount
                 },
-            status = schedule.status.name,
         )
 
     suspend fun deleteTransaction(

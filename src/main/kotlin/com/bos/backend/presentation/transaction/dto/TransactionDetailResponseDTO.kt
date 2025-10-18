@@ -18,7 +18,7 @@ data class TransactionDetailResponseDTO(
 
 data class RepaymentScheduleDetailDTO(
     val id: Long,
-    val date: String,
-    val amount: BigDecimal,
     val status: String,
+    val displayDate: String,
+    val displayAmount: BigDecimal,
 )
