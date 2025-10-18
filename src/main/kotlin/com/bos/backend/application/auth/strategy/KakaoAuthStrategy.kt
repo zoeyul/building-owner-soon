@@ -68,7 +68,7 @@ class KakaoAuthStrategy(
         requireNotNull(request.providerAccessToken) { "Provider access token is required for Kakao signin" }
 
         // 카카오 토큰 검증
-        require(validateProviderToken(request.providerAccessToken, request.providerId, request.email)) {
+        require(validateProviderToken(request.providerAccessToken, request.providerId)) {
             "Invalid Kakao token or user info mismatch"
         }
 
