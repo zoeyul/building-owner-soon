@@ -9,7 +9,7 @@ object UserFixture {
             id = 1L,
             nickname = "홍길동",
             character =
-                Character(
+                ProfileCharacter(
                     face = CharacterAsset("FACE_TYPE_1", URI.create("https://example.com/face.svg")),
                     hand = CharacterAsset("HAND_TYPE_1", URI.create("https://example.com/hand.svg")),
                     skinColor = "#FFFFFF",

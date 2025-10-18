@@ -1,7 +1,7 @@
 package com.bos.backend.application.mapper
 
-import com.bos.backend.domain.user.entity.Character
 import com.bos.backend.domain.user.entity.CharacterAsset
+import com.bos.backend.domain.user.entity.ProfileCharacter
 import com.bos.backend.domain.user.entity.User
 import com.bos.backend.domain.user.entity.UserAuthFixture
 import io.kotest.core.spec.style.StringSpec
@@ -24,7 +24,7 @@ class UserMapperTest :
                     isNotificationAllowed = true,
                     isMarketingAgreed = false,
                     character =
-                        Character(
+                        ProfileCharacter(
                             face = CharacterAsset("face_1", URI.create("https://example.com/face.svg")),
                             hand = CharacterAsset("hand_1", URI.create("https://example.com/hand.svg")),
                             skinColor = "#FFDBAC",
@@ -71,7 +71,7 @@ class UserMapperTest :
                     isNotificationAllowed = false,
                     isMarketingAgreed = true,
                     character =
-                        Character(
+                        ProfileCharacter(
                             face = CharacterAsset("FACE_TYPE_1", URI.create("https://example.com/face.svg")),
                             hand = CharacterAsset("HAND_TYPE_1", URI.create("https://example.com/hand.svg")),
                             skinColor = "#FFFFFF",

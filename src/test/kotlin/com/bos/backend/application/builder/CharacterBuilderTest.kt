@@ -2,8 +2,8 @@ package com.bos.backend.application.builder
 
 import com.bos.backend.application.service.CharacterAssetService
 import com.bos.backend.domain.profile.enums.ProfileAssetType
-import com.bos.backend.domain.user.entity.Character
 import com.bos.backend.domain.user.entity.CharacterAsset
+import com.bos.backend.domain.user.entity.ProfileCharacter
 import com.bos.backend.domain.user.factory.CharacterFactory
 import com.bos.backend.presentation.user.dto.UpdateCharacterDTO
 import io.kotest.core.spec.style.StringSpec
@@ -22,7 +22,7 @@ class CharacterBuilderTest : StringSpec({
     "새로운 캐릭터를 완전히 새로 생성할 때 모든 기본값을 사용한다" {
         // given
         val characterDTO = UpdateCharacterDTO()
-        val currentCharacter: Character? = null
+        val currentCharacter: ProfileCharacter? = null
 
         val defaultAssets =
             mapOf(
@@ -61,7 +61,7 @@ class CharacterBuilderTest : StringSpec({
     "기존 캐릭터가 있을 때 DTO에서 제공된 값만 업데이트한다" {
         // given
         val existingCharacter =
-            Character(
+            ProfileCharacter(
                 face = CharacterAsset("OLD_FACE", URI.create("https://example.com/old_face.svg")),
                 hand = CharacterAsset("OLD_HAND", URI.create("https://example.com/old_hand.svg")),
                 skinColor = "#AABBCC",
