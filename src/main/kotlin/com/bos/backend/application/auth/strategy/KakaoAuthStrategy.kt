@@ -1,7 +1,7 @@
 package com.bos.backend.application.auth.strategy
 
-import com.bos.backend.application.AuthErrorCode
 import com.bos.backend.application.CustomException
+import com.bos.backend.application.auth.AuthErrorCode
 import com.bos.backend.application.service.CharacterAssetService
 import com.bos.backend.domain.user.entity.User
 import com.bos.backend.domain.user.entity.UserAuth

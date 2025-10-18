@@ -57,8 +57,8 @@ cors:
     - "http://localhost:3000"
     - "http://192.168.0.6:3000"
     - "https://192.168.0.6:3000"
-    - "https://buildingownersoon-web.vercel.app"
     - "https://buildingownersoon.app"
+    - "https://www.buildingownersoon.app"
   allowed-methods:
     - "HEAD"
     - "GET"
