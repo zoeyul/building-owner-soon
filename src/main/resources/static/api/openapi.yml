@@ -33,6 +33,7 @@ paths:
 
             **에러 케이스:**
             - `INVALID_REQUEST`: 요청 형식이 올바르지 않습니다
+            - `PASSWORD_MISMATCH`: 이메일 또는 비밀번호가 일치하지 않습니다 (BOS 로그인)
             - 로그인 로직 중 발생한 기타 에러
           content:
             application/json:
@@ -45,6 +46,18 @@ paths:
                   message:
                     type: string
                     example: "요청값이 올바르지 않습니다."
+              examples:
+                invalid_request:
+                  summary: 잘못된 요청 형식
+                  value:
+                    errorCode: "INVALID_REQUEST"
+                    message: "요청값이 올바르지 않습니다."
+                password_mismatch:
+                  summary: 비밀번호 불일치
+                  description: BOS 로그인 시 이메일 또는 비밀번호가 일치하지 않는 경우
+                  value:
+                    errorCode: "PASSWORD_MISMATCH"
+                    message: "이메일 또는 비밀번호가 일치하지 않습니다."
         "404":
           description: |-
             사용자 미등록
