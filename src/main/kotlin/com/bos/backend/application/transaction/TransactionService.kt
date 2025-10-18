@@ -455,6 +455,7 @@ class TransactionService(
 
         return upcomingSchedules.firstOrNull()?.let { earliestSchedule ->
             UpcomingTransactionInfoDTO(
+                scheduleId = earliestSchedule.id!!,
                 dueDate = earliestSchedule.scheduledDate,
                 amount = earliestSchedule.scheduledAmount.toLong(),
             )

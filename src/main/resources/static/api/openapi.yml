@@ -2579,9 +2579,15 @@ components:
     UpcomingTransactionInfo:
       type: object
       required:
+        - scheduleId
         - dueDate
         - amount
       properties:
+        scheduleId:
+          type: integer
+          format: int64
+          description: 상환 스케줄 ID
+          example: 456
         dueDate:
           type: string
           format: date
