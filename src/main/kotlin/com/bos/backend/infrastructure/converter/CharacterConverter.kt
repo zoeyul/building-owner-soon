@@ -2,6 +2,7 @@ package com.bos.backend.infrastructure.converter
 
 import com.bos.backend.domain.transaction.entity.CounterpartCharacter
 import com.bos.backend.domain.user.entity.Character
+import com.bos.backend.domain.user.entity.ProfileCharacter
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.core.convert.converter.Converter
 import org.springframework.data.convert.ReadingConverter
@@ -19,6 +20,21 @@ class CharacterWritingConverter(
     private val objectMapper: ObjectMapper,
 ) : Converter<Character, String> {
     override fun convert(source: Character): String = objectMapper.writeValueAsString(source)
+}
+
+@ReadingConverter
+class ProfileCharacterReadingConverter(
+    private val objectMapper: ObjectMapper,
+) : Converter<String, ProfileCharacter> {
+    override fun convert(source: String): ProfileCharacter =
+        objectMapper.readValue(source, ProfileCharacter::class.java)
+}
+
+@WritingConverter
+class ProfileCharacterWritingConverter(
+    private val objectMapper: ObjectMapper,
+) : Converter<ProfileCharacter, String> {
+    override fun convert(source: ProfileCharacter): String = objectMapper.writeValueAsString(source)
 }
 
 @ReadingConverter

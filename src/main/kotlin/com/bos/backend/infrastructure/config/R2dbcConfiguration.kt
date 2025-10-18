@@ -6,6 +6,8 @@ import com.bos.backend.infrastructure.converter.CounterpartCharacterReadingConve
 import com.bos.backend.infrastructure.converter.CounterpartCharacterWritingConverter
 import com.bos.backend.infrastructure.converter.NotificationCategoryReadConverter
 import com.bos.backend.infrastructure.converter.NotificationCategoryWriteConverter
+import com.bos.backend.infrastructure.converter.ProfileCharacterReadingConverter
+import com.bos.backend.infrastructure.converter.ProfileCharacterWritingConverter
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.r2dbc.spi.ConnectionFactory
 import org.springframework.context.annotation.Bean
@@ -45,6 +47,8 @@ class R2dbcConfiguration {
                 LocalDateTimeToInstantConverter(),
                 CharacterReadingConverter(objectMapper),
                 CharacterWritingConverter(objectMapper),
+                ProfileCharacterReadingConverter(objectMapper),
+                ProfileCharacterWritingConverter(objectMapper),
                 CounterpartCharacterReadingConverter(objectMapper),
                 CounterpartCharacterWritingConverter(objectMapper),
                 NotificationCategoryReadConverter(),
