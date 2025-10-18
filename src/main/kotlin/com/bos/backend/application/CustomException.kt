@@ -36,3 +36,13 @@ enum class CommonErrorCode(
         HttpStatus.NOT_FOUND,
     ),
 }
+
+enum class AuthErrorCode(
+    override val message: String,
+    override val status: HttpStatus = HttpStatus.BAD_REQUEST,
+) : ErrorCode {
+    USER_NOT_REGISTERED(
+        "가입되지 않은 사용자입니다.",
+        HttpStatus.NOT_FOUND,
+    ),
+}
