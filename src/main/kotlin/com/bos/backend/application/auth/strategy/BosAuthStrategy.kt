@@ -1,5 +1,7 @@
 package com.bos.backend.application.auth.strategy
 
+import com.bos.backend.application.AuthErrorCode
+import com.bos.backend.application.CustomException
 import com.bos.backend.application.service.CharacterAssetService
 import com.bos.backend.domain.user.entity.User
 import com.bos.backend.domain.user.entity.UserAuth
@@ -62,7 +64,7 @@ class BosAuthStrategy(
 
         val userAuth =
             userAuthRepository.findByEmailAndProviderType(request.email, providerType.value)
-                ?: throw IllegalArgumentException("User not found with email: ${request.email}")
+                ?: throw CustomException(AuthErrorCode.USER_NOT_REGISTERED)
 
         require(userAuth.passwordHash == request.password) { "Invalid password for user: ${request.email}" }
 

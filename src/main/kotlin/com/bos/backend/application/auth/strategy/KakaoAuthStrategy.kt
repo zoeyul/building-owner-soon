@@ -1,5 +1,7 @@
 package com.bos.backend.application.auth.strategy
 
+import com.bos.backend.application.AuthErrorCode
+import com.bos.backend.application.CustomException
 import com.bos.backend.application.service.CharacterAssetService
 import com.bos.backend.domain.user.entity.User
 import com.bos.backend.domain.user.entity.UserAuth
@@ -74,7 +76,7 @@ class KakaoAuthStrategy(
 
         val userAuth =
             userAuthRepository.findByProviderIdAndProviderType(request.providerId, providerType.value)
-                ?: throw IllegalArgumentException("User not found with email: ${request.email}")
+                ?: throw CustomException(AuthErrorCode.USER_NOT_REGISTERED)
 
         val user = checkNotNull(userRepository.findById(userAuth.userId)) { "User not found" }
 
