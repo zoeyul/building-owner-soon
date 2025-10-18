@@ -35,4 +35,12 @@ enum class CommonErrorCode(
         "요청한 리소스를 찾을 수 없습니다.",
         HttpStatus.NOT_FOUND,
     ),
+    REPAYMENT_TYPE_MISMATCH(
+        "유연한 상환 타입의 거래만 사용할 수 있습니다.",
+        HttpStatus.CONFLICT,
+    ),
+    AMOUNT_EXCEEDS_REMAINING(
+        "상환 금액이 잔여 금액을 초과할 수 없습니다.",
+        HttpStatus.BAD_REQUEST,
+    ),
 }
