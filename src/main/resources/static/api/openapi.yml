@@ -1459,7 +1459,14 @@ components:
         email:
           $ref: "#/components/schemas/Email"
         password:
-          $ref: "#/components/schemas/Password"
+          type: string
+          nullable: true
+          description: |-
+            비밀번호 (Provider가 BOS인 경우 필수)
+
+            로그인 시에는 비밀번호 형식 검증을 하지 않으며,
+            인증 과정에서 비밀번호 일치 여부만 확인합니다.
+          example: "Password123!"
         providerAccessToken:
           description: |-
             소셜로그인 제공자로부터 받은 access token 입니다. (KAKAO 등)

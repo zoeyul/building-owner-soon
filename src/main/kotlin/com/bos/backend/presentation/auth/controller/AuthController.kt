@@ -27,13 +27,13 @@ class AuthController(
     @PostMapping("/auth/sign-up")
     @ResponseStatus(HttpStatus.CREATED)
     suspend fun signUp(
-        @RequestBody signUpRequestDTO: SignUpRequestDTO,
+        @Valid @RequestBody signUpRequestDTO: SignUpRequestDTO,
     ): CommonSignResponseDTO = authService.signUp(signUpRequestDTO)
 
     @PostMapping("/auth/sign-in")
     @ResponseStatus(HttpStatus.OK)
     suspend fun signIn(
-        @RequestBody signInRequestDTO: SignInRequestDTO,
+        @Valid @RequestBody signInRequestDTO: SignInRequestDTO,
     ): CommonSignResponseDTO = authService.signIn(signInRequestDTO)
 
     @GetMapping("/auth/check-email")
