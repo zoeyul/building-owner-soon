@@ -41,6 +41,8 @@ class ValidPasswordConstraintValidatorTest :
 
         "유효한 비밀번호는 검증을 통과해야 한다" {
             validator.isValid("Password123!", context) shouldBe true
+            validator.isValid("password123!", context) shouldBe true // 소문자만 있어도 통과
+            validator.isValid("PASSWORD123!", context) shouldBe true // 대문자만 있어도 통과
         }
 
         "유효하지 않은 비밀번호는 검증을 실패해야 한다" {
@@ -50,14 +52,6 @@ class ValidPasswordConstraintValidatorTest :
 
         "영문자가 없는 비밀번호는 검증을 실패해야 한다" {
             validator.isValid("12345678!@#", context) shouldBe false
-        }
-
-        "대문자가 없는 비밀번호는 검증을 실패해야 한다" {
-            validator.isValid("password123!", context) shouldBe false
-        }
-
-        "소문자가 없는 비밀번호는 검증을 실패해야 한다" {
-            validator.isValid("PASSWORD123!", context) shouldBe false
         }
 
         "숫자가 없는 비밀번호는 검증을 실패해야 한다" {
