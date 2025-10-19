@@ -26,10 +26,6 @@ class RepaymentScheduleService(
             transactionRepository.findById(transactionId)
                 ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
 
-        if (transaction.repaymentType == RepaymentType.FLEXIBLE) {
-            throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
-        }
-
         if (transaction.userId != userId) {
             throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
         }
