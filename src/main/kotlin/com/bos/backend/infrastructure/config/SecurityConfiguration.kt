@@ -36,6 +36,7 @@ class SecurityConfiguration(
                         "/auth/email-verification/**",
                         "/auth/password-reset",
                         "/auth/check-email",
+                        "/auth/token/refresh",
                         "/api/**",
                         "/actuator/**",
                         "/admin/**",
