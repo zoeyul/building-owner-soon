@@ -100,20 +100,20 @@ class NotificationService(
                 return
             }
 
-            val tokens = devices.map { it.fcmToken }
-
+            // 플랫폼별 최적화된 메시지 생성
             val pushMessage =
-                if (deepLink != null) {
-                    PushMessage.createMessageWithDeepLink(title, content, deepLink)
-                } else {
-                    PushMessage.createSimpleMessage(title, content)
-                }
+                PushMessage.createOptimizedMessage(
+                    title = title,
+                    body = content,
+                    deepLink = deepLink,
+                )
 
-            val result = fcmPushService.sendToMultipleDevices(tokens, pushMessage)
+            val result = fcmPushService.sendToMultipleDevices(devices, pushMessage)
 
             logger.info(
                 "푸시 알림 전송 완료: userId=$userId, " +
-                    "성공=${result.successCount}, 실패=${result.failureCount}",
+                    "성공=${result.successCount}, 실패=${result.failureCount}, " +
+                    "삭제된 토큰=${result.deletedTokens.size}",
             )
         } catch (
             @Suppress("TooGenericExceptionCaught")

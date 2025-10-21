@@ -17,4 +17,6 @@ interface UserDeviceRepository {
         userId: Long,
         deviceId: String,
     )
+
+    suspend fun deleteByFcmToken(fcmToken: String): Long
 }
