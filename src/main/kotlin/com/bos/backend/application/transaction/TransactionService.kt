@@ -38,8 +38,8 @@ class TransactionService(
 ) {
     companion object {
         private const val OVERDUE_PRIORITY = 1
-        private const val SCHEDULED_PRIORITY = 2
-        private const val IN_PROGRESS_PRIORITY = 3
+        private const val IN_PROGRESS_PRIORITY = 2
+        private const val SCHEDULED_PRIORITY = 3
         private const val COMPLETED_PRIORITY = 4
         private const val DEFAULT_PRIORITY = 5
     }

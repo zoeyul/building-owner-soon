@@ -1029,15 +1029,23 @@ paths:
     post:
       tags:
         - transaction
-      operationId: addFlexibleRepayment
-      summary: "유연한 상환 처리"
+      operationId: processRepayment
+      summary: "상환 처리 (통합)"
       description: |-
-        유연한 상환(FLEXIBLE) 타입의 거래에 대한 상환을 처리합니다.
+        모든 상환 타입(FLEXIBLE, DIVIDED_BY_PERIOD, FIXED_MONTHLY)의 거래에 대한 상환을 처리합니다.
 
-        ## 특징
-        - FLEXIBLE 타입의 거래만 사용 가능합니다.
+        ## 상환 타입별 동작
+
+        ### FLEXIBLE (유연한 상환)
         - 상환 시점에 스케줄이 생성되며, 즉시 완료 상태(COMPLETED)로 처리됩니다.
         - 상환 금액은 잔여 금액을 초과할 수 없습니다.
+        - `repaymentDate`: 실제 상환한 날짜 (자유롭게 설정 가능)
+
+        ### DIVIDED_BY_PERIOD / FIXED_MONTHLY (정기 상환)
+        - `repaymentDate`에 해당하는 스케줄을 조회하여 상환 처리합니다.
+        - 실제 상환 금액이 예정 금액과 다를 경우, 남은 스케줄의 금액이 자동으로 재연산됩니다.
+        - 재연산 방식: 남은 금액을 미완료 스케줄에 균등 분배 (마지막 스케줄에 나머지 할당)
+        - `repaymentDate`: 기존에 생성된 스케줄의 날짜여야 합니다.
 
         ## 요청 조건
         - 본인이 생성한 거래내역에만 상환 처리를 할 수 있습니다.
@@ -1070,7 +1078,7 @@ paths:
             잘못된 요청
 
             **에러 케이스:**
-            - `AMOUNT_EXCEEDS_REMAINING`: 상환 금액이 잔여 금액을 초과함
+            - `AMOUNT_EXCEEDS_REMAINING`: 상환 금액이 잔여 금액을 초과함 (FLEXIBLE만 해당)
             - validation 실패
           content:
             application/problem+json:
@@ -1079,13 +1087,18 @@ paths:
         "401":
           description: 인증 실패
         "404":
-          description: 거래내역을 찾을 수 없음
-        "409":
           description: |-
-            잘못된 상환 타입
+            거래내역 또는 스케줄을 찾을 수 없음
 
             **에러 케이스:**
-            - `REPAYMENT_TYPE_MISMATCH`: 유연한 상환 타입의 거래가 아님
+            - 거래내역이 존재하지 않음
+            - 정기 상환의 경우, 해당 날짜의 스케줄이 존재하지 않음
+        "409":
+          description: |-
+            상환 처리 불가
+
+            **에러 케이스:**
+            - `REPAYMENT_ALREADY_COMPLETED`: 이미 완료된 스케줄
           content:
             application/problem+json:
               schema:

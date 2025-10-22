@@ -15,6 +15,13 @@ interface RepaymentScheduleRepository {
 
     suspend fun findByTransactionIdIn(transactionIds: List<Long>): List<RepaymentSchedule>
 
+    suspend fun findByTransactionIdAndScheduledDate(
+        transactionId: Long,
+        scheduledDate: LocalDate,
+    ): RepaymentSchedule?
+
+    suspend fun findPendingSchedulesByTransactionId(transactionId: Long): List<RepaymentSchedule>
+
     suspend fun updateOverdueStatuses(
         today: LocalDate,
         overdueStatus: RepaymentStatus = RepaymentStatus.OVERDUE,

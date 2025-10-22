@@ -18,6 +18,29 @@ interface R2dbcRepaymentScheduleRepository :
 
     @Query(
         """
+        SELECT * FROM repayment_schedules
+        WHERE transaction_id = :transactionId
+        AND scheduled_date = :scheduledDate
+        LIMIT 1
+        """,
+    )
+    override suspend fun findByTransactionIdAndScheduledDate(
+        transactionId: Long,
+        scheduledDate: LocalDate,
+    ): RepaymentSchedule?
+
+    @Query(
+        """
+        SELECT * FROM repayment_schedules
+        WHERE transaction_id = :transactionId
+        AND status != 'COMPLETED'
+        ORDER BY scheduled_date ASC
+        """,
+    )
+    override suspend fun findPendingSchedulesByTransactionId(transactionId: Long): List<RepaymentSchedule>
+
+    @Query(
+        """
         UPDATE repayment_schedules
         SET status = :overdueStatus, updated_at = CURRENT_TIMESTAMP
         WHERE scheduled_date < :today

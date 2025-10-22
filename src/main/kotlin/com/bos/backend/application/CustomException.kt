@@ -43,4 +43,8 @@ enum class CommonErrorCode(
         "상환 금액이 잔여 금액을 초과할 수 없습니다.",
         HttpStatus.BAD_REQUEST,
     ),
+    REPAYMENT_ALREADY_COMPLETED(
+        "이미 완료된 상환입니다.",
+        HttpStatus.CONFLICT,
+    ),
 }
