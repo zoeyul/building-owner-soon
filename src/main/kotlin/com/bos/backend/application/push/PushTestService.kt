@@ -54,8 +54,7 @@ class PushTestService(
             )
 
         // 모든 디바이스에 전송
-        val tokens = devices.map { it.fcmToken }
-        val sendResult = fcmPushService.sendToMultipleDevices(tokens, pushMessage)
+        val sendResult = fcmPushService.sendToMultipleDevices(devices, pushMessage)
 
         logger.info(
             "푸시 테스트 완료: userId=$userId, 성공=${sendResult.successCount}, 실패=${sendResult.failureCount}",

@@ -1,8 +1,8 @@
 package com.bos.backend.application.user
 
 import com.bos.backend.domain.user.entity.UserDevice
-import com.bos.backend.domain.user.enum.Platform
 import com.bos.backend.domain.user.repository.UserDeviceRepository
+import com.bos.backend.presentation.user.dto.FcmTokenUpdateRequestDTO
 import org.springframework.stereotype.Service
 import java.time.Instant
 
@@ -12,20 +12,18 @@ class UserDeviceService(
 ) {
     suspend fun updateFcmToken(
         userId: Long,
-        deviceId: String,
-        fcmToken: String,
-        platform: Platform?,
-        deviceName: String?,
+        request: FcmTokenUpdateRequestDTO,
     ) {
-        val existing = userDeviceRepository.findByUserIdAndDeviceId(userId, deviceId)
+        val existing = userDeviceRepository.findByUserIdAndDeviceId(userId, request.deviceId)
 
         if (existing != null) {
             // 기존 디바이스 토큰 업데이트
             val updated =
                 existing.copy(
-                    fcmToken = fcmToken,
-                    platform = platform ?: existing.platform,
-                    deviceName = deviceName ?: existing.deviceName,
+                    fcmToken = request.fcmToken,
+                    expoToken = request.expoToken,
+                    platform = request.platform ?: existing.platform,
+                    deviceName = request.deviceName ?: existing.deviceName,
                     updatedAt = Instant.now(),
                 )
             userDeviceRepository.save(updated)
@@ -34,10 +32,11 @@ class UserDeviceService(
             val newDevice =
                 UserDevice(
                     userId = userId,
-                    deviceId = deviceId,
-                    fcmToken = fcmToken,
-                    platform = platform,
-                    deviceName = deviceName,
+                    deviceId = request.deviceId,
+                    fcmToken = request.fcmToken,
+                    expoToken = request.expoToken,
+                    platform = request.platform,
+                    deviceName = request.deviceName,
                 )
             userDeviceRepository.save(newDevice)
         }

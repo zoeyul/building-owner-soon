@@ -8,6 +8,8 @@ data class FcmTokenUpdateRequestDTO(
     val deviceId: String,
     @field:NotBlank(message = "FCM 토큰은 필수입니다")
     val fcmToken: String,
+    @field:NotBlank(message = "Expo 토큰은 필수입니다")
+    val expoToken: String,
     val platform: Platform?,
     val deviceName: String?,
 )

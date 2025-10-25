@@ -57,12 +57,6 @@ class UserController(
         @AuthenticationPrincipal userId: String,
         @Valid @RequestBody request: FcmTokenUpdateRequestDTO,
     ) {
-        userDeviceService.updateFcmToken(
-            userId = userId.toLong(),
-            deviceId = request.deviceId,
-            fcmToken = request.fcmToken,
-            platform = request.platform,
-            deviceName = request.deviceName,
-        )
+        userDeviceService.updateFcmToken(userId = userId.toLong(), request = request)
     }
 }
