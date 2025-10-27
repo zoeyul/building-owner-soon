@@ -14,7 +14,7 @@ class RepaymentScheduleBatchService(
 ) {
     private val logger = LoggerFactory.getLogger(RepaymentScheduleBatchService::class.java)
 
-    @Scheduled(cron = "0 30 0 * * *")
+    @Scheduled(cron = "5 0 0 * * *", zone = "Asia/Seoul")
     fun updateRepaymentStatuses() {
         runBlocking {
             executeUpdateRepaymentStatuses()
