@@ -25,14 +25,13 @@ interface RepaymentScheduleRepository {
     suspend fun updateOverdueStatuses(
         today: LocalDate,
         overdueStatus: RepaymentStatus = RepaymentStatus.OVERDUE,
-        scheduledStatus: RepaymentStatus = RepaymentStatus.SCHEDULED,
-        inProgressStatus: RepaymentStatus = RepaymentStatus.IN_PROGRESS,
+        completedStatus: RepaymentStatus = RepaymentStatus.COMPLETED,
     ): Int
 
     suspend fun updateInProgressStatuses(
         startDate: LocalDate,
         endDate: LocalDate,
         inProgressStatus: RepaymentStatus = RepaymentStatus.IN_PROGRESS,
-        scheduledStatus: RepaymentStatus = RepaymentStatus.SCHEDULED,
+        completedStatus: RepaymentStatus = RepaymentStatus.COMPLETED,
     ): Int
 }

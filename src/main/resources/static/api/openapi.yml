@@ -1128,6 +1128,80 @@ paths:
           description: 인증 실패
         "500":
           $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /transactions/calculate-repayment:
+    post:
+      tags:
+        - transaction
+      operationId: calculateRepayment
+      summary: "월 상환금액 계산"
+      description: |-
+        거래 조건에 따라 월 상환금액 또는 완료 예정일을 계산합니다.
+
+        ## 상환 타입별 계산 방식
+
+        ### FIXED_MONTHLY (고정 월납 상환)
+        - 입력: 거래 시작일, 전체 금액, 완료 예정일, 매달 납부일, 미리 갚은 금액(선택)
+        - 출력: 월 납부액
+        - 계산식: (전체 금액 - 미리 갚은 금액) ÷ 납부 횟수
+
+        ### DIVIDED_BY_PERIOD (기간별 분할 상환)
+        - 입력: 거래 시작일, 전체 금액, 월 납부 금액, 매달 납부일, 미리 갚은 금액(선택)
+        - 출력: 완료 예정일, 몇 개월 후
+        - 계산식: 월 납부액으로 남은 금액을 모두 갚을 때까지의 기간 계산
+
+        ### FLEXIBLE (유연한 상환)
+        - 지원하지 않음 (400 에러 반환)
+
+        ## 주의사항
+        - 미리 갚은 금액은 선택 필드이며, 입력하지 않으면 0으로 간주됩니다
+        - 남은 금액(전체 금액 - 미리 갚은 금액)은 0보다 커야 합니다
+        - 매달 납부일은 1~31 사이의 값이며, 해당 월에 없는 날짜는 월말일로 자동 조정됩니다
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/FixedMonthlyCalculationRequest"
+                - $ref: "#/components/schemas/DividedByPeriodCalculationRequest"
+              discriminator:
+                propertyName: repaymentType
+                mapping:
+                  FIXED_MONTHLY: "#/components/schemas/FixedMonthlyCalculationRequest"
+                  DIVIDED_BY_PERIOD: "#/components/schemas/DividedByPeriodCalculationRequest"
+      responses:
+        "200":
+          description: 계산 성공
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/FixedMonthlyCalculationResponse"
+                  - $ref: "#/components/schemas/DividedByPeriodCalculationResponse"
+                discriminator:
+                  propertyName: repaymentType
+                  mapping:
+                    FIXED_MONTHLY: "#/components/schemas/FixedMonthlyCalculationResponse"
+                    DIVIDED_BY_PERIOD: "#/components/schemas/DividedByPeriodCalculationResponse"
+        "400":
+          description: |-
+            잘못된 요청
+
+            **에러 케이스:**
+            - FLEXIBLE 타입은 계산을 지원하지 않습니다
+            - 남은 금액이 0보다 커야 합니다
+            - 월 납부 금액이 남은 금액보다 클 수 없습니다
+            - 완료 예정일은 시작일 이후여야 합니다
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/BaseProblemDetails"
+        "401":
+          description: 인증 실패
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
   /relationships:
     get:
       tags:
@@ -2468,6 +2542,134 @@ components:
           items:
             $ref: "#/components/schemas/RepaymentScheduleItem"
           description: 정규 상환 목록 (예정, 진행중, 완료된 상환)
+    FixedMonthlyCalculationRequest:
+      type: object
+      required:
+        - repaymentType
+        - startDate
+        - totalAmount
+        - targetDate
+        - paymentDay
+      properties:
+        repaymentType:
+          type: string
+          enum:
+            - FIXED_MONTHLY
+          description: 상환 타입
+          example: "FIXED_MONTHLY"
+        startDate:
+          type: string
+          format: date
+          description: 거래 시작일
+          example: "2025-01-01"
+        totalAmount:
+          type: number
+          format: decimal
+          description: 전체 금액
+          example: 1000000
+          minimum: 10000
+        completedAmount:
+          type: number
+          format: decimal
+          description: 미리 갚은 금액 (선택)
+          example: 100000
+          minimum: 0
+          nullable: true
+        targetDate:
+          type: string
+          format: date
+          description: 완료 예정일
+          example: "2025-12-31"
+        paymentDay:
+          type: integer
+          description: 매달 납부일 (1~31)
+          example: 15
+          minimum: 1
+          maximum: 31
+    DividedByPeriodCalculationRequest:
+      type: object
+      required:
+        - repaymentType
+        - startDate
+        - totalAmount
+        - monthlyAmount
+        - paymentDay
+      properties:
+        repaymentType:
+          type: string
+          enum:
+            - DIVIDED_BY_PERIOD
+          description: 상환 타입
+          example: "DIVIDED_BY_PERIOD"
+        startDate:
+          type: string
+          format: date
+          description: 거래 시작일
+          example: "2025-01-01"
+        totalAmount:
+          type: number
+          format: decimal
+          description: 전체 금액
+          example: 1000000
+          minimum: 10000
+        completedAmount:
+          type: number
+          format: decimal
+          description: 미리 갚은 금액 (선택)
+          example: 100000
+          minimum: 0
+          nullable: true
+        monthlyAmount:
+          type: number
+          format: decimal
+          description: 월 납부 금액
+          example: 100000
+          minimum: 1000
+        paymentDay:
+          type: integer
+          description: 매달 납부일 (1~31)
+          example: 15
+          minimum: 1
+          maximum: 31
+    FixedMonthlyCalculationResponse:
+      type: object
+      required:
+        - repaymentType
+        - monthlyAmount
+      properties:
+        repaymentType:
+          type: string
+          enum:
+            - FIXED_MONTHLY
+          description: 상환 타입
+          example: "FIXED_MONTHLY"
+        monthlyAmount:
+          type: number
+          format: decimal
+          description: 월 납부액
+          example: 83333.33
+    DividedByPeriodCalculationResponse:
+      type: object
+      required:
+        - repaymentType
+        - completionDate
+        - monthsLater
+      properties:
+        repaymentType:
+          type: string
+          enum:
+            - DIVIDED_BY_PERIOD
+          description: 상환 타입
+          example: "DIVIDED_BY_PERIOD"
+        completionDate:
+          type: string
+          format: date
+          description: 완료 예정일
+          example: "2025-10-15"
+        monthsLater:
+          type: integer
+          description: 몇 개월 후
+          example: 9
     CreateRepaymentRequest:
       type: object
       required:

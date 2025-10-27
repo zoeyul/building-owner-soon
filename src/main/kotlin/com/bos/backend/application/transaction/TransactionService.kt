@@ -35,6 +35,7 @@ class TransactionService(
     private val userService: UserService,
     private val transactionalOperator: TransactionalOperator,
     private val characterBuilder: com.bos.backend.application.builder.CharacterBuilder,
+    private val repaymentScheduleCalculator: RepaymentScheduleCalculator,
 ) {
     companion object {
         private const val OVERDUE_PRIORITY = 1
@@ -234,91 +235,50 @@ class TransactionService(
         val targetDate = transaction.targetDate ?: throw CustomException(CommonErrorCode.INVALID_PARAMETER)
         val paymentDay = transaction.paymentDay ?: throw CustomException(CommonErrorCode.INVALID_PARAMETER)
         val remainingAmount = transaction.remainingAmount()
+        val startDate = transaction.createdAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 
-        val schedules = mutableListOf<RepaymentSchedule>()
-        var currentDate =
-            calculateNextPaymentDate(
-                transaction.createdAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
-                paymentDay,
+        // RepaymentScheduleCalculator를 사용하여 계산
+        val paymentSchedules =
+            repaymentScheduleCalculator.calculateDividedByPeriodSchedule(
+                startDate = startDate,
+                targetDate = targetDate,
+                paymentDay = paymentDay,
+                remainingAmount = remainingAmount,
             )
 
-        val monthsList = mutableListOf<LocalDate>()
-        while (currentDate.isBefore(targetDate) || currentDate.isEqual(targetDate)) {
-            monthsList.add(currentDate)
-            currentDate = calculateNextPaymentDate(currentDate, paymentDay)
+        // Calculator의 PaymentSchedule을 Domain의 RepaymentSchedule로 변환
+        return paymentSchedules.map { schedule ->
+            RepaymentSchedule(
+                transactionId = transaction.id!!,
+                scheduledDate = schedule.scheduledDate,
+                scheduledAmount = schedule.scheduledAmount,
+            )
         }
-
-        if (monthsList.isNotEmpty()) {
-            val amountPerPeriod = remainingAmount.divide(BigDecimal(monthsList.size), 2, RoundingMode.HALF_UP)
-
-            monthsList.forEachIndexed { index, paymentDate ->
-                val amount =
-                    if (index == monthsList.size - 1) {
-                        remainingAmount - amountPerPeriod.multiply(BigDecimal(monthsList.size - 1))
-                    } else {
-                        amountPerPeriod
-                    }
-
-                schedules.add(
-                    RepaymentSchedule(
-                        transactionId = transaction.id!!,
-                        scheduledDate = paymentDate,
-                        scheduledAmount = amount,
-                    ),
-                )
-            }
-        }
-
-        return schedules
     }
 
     private fun generateFixedMonthlySchedules(transaction: Transaction): List<RepaymentSchedule> {
         val monthlyAmount = transaction.monthlyAmount ?: throw CustomException(CommonErrorCode.INVALID_PARAMETER)
         val paymentDay = transaction.paymentDay ?: throw CustomException(CommonErrorCode.INVALID_PARAMETER)
-        val totalAmount = transaction.totalAmount
+        val remainingAmount = transaction.remainingAmount()
+        val startDate = transaction.createdAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
 
-        val schedules = mutableListOf<RepaymentSchedule>()
-        var currentDate =
-            calculateNextPaymentDate(
-                transaction.createdAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
-                paymentDay,
-            )
-        var remainingAmount = totalAmount
-
-        while (remainingAmount > BigDecimal.ZERO) {
-            val paymentAmount = if (remainingAmount < monthlyAmount) remainingAmount else monthlyAmount
-
-            schedules.add(
-                RepaymentSchedule(
-                    transactionId = transaction.id!!,
-                    scheduledDate = currentDate,
-                    scheduledAmount = paymentAmount,
-                ),
+        // RepaymentScheduleCalculator를 사용하여 계산
+        val paymentSchedules =
+            repaymentScheduleCalculator.calculateFixedMonthlySchedule(
+                startDate = startDate,
+                paymentDay = paymentDay,
+                monthlyAmount = monthlyAmount,
+                remainingAmount = remainingAmount,
             )
 
-            remainingAmount -= paymentAmount
-            currentDate = calculateNextPaymentDate(currentDate, paymentDay)
+        // Calculator의 PaymentSchedule을 Domain의 RepaymentSchedule로 변환
+        return paymentSchedules.map { schedule ->
+            RepaymentSchedule(
+                transactionId = transaction.id!!,
+                scheduledDate = schedule.scheduledDate,
+                scheduledAmount = schedule.scheduledAmount,
+            )
         }
-
-        return schedules
-    }
-
-    private fun calculateNextPaymentDate(
-        baseDate: LocalDate,
-        paymentDay: Int,
-    ): LocalDate {
-        val targetMonth =
-            if (baseDate.dayOfMonth >= paymentDay) {
-                baseDate.plusMonths(1)
-            } else {
-                baseDate
-            }
-
-        val lastDayOfMonth = targetMonth.lengthOfMonth()
-
-        val adjustedPaymentDay = if (paymentDay > lastDayOfMonth) lastDayOfMonth else paymentDay
-
-        return targetMonth.withDayOfMonth(adjustedPaymentDay)
     }
 
     private suspend fun calculateMonthlyAmount(

@@ -1,7 +1,10 @@
 package com.bos.backend.presentation.transaction.controller
 
+import com.bos.backend.application.transaction.RepaymentCalculationService
 import com.bos.backend.application.transaction.RepaymentScheduleService
 import com.bos.backend.application.transaction.TransactionService
+import com.bos.backend.presentation.transaction.dto.CalculateRepaymentRequest
+import com.bos.backend.presentation.transaction.dto.CalculateRepaymentResponse
 import com.bos.backend.presentation.transaction.dto.CreateRepaymentRequestDTO
 import com.bos.backend.presentation.transaction.dto.CreateTransactionRequestDTO
 import com.bos.backend.presentation.transaction.dto.DebtSummaryResponseDTO
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController
 class TransactionController(
     private val transactionService: TransactionService,
     private val repaymentScheduleService: RepaymentScheduleService,
+    private val repaymentCalculationService: RepaymentCalculationService,
 ) {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -106,4 +110,12 @@ class TransactionController(
     suspend fun getTransactionSummary(
         @AuthenticationPrincipal userId: String,
     ): DebtSummaryResponseDTO = transactionService.getTransactionSummary(userId.toLong())
+
+    @PostMapping("/calculate-repayment")
+    @ResponseStatus(HttpStatus.OK)
+    fun calculateRepayment(
+        @Suppress("UNUSED_PARAMETER")
+        @AuthenticationPrincipal userId: String,
+        @Valid @RequestBody request: CalculateRepaymentRequest,
+    ): CalculateRepaymentResponse = repaymentCalculationService.calculateRepayment(request)
 }

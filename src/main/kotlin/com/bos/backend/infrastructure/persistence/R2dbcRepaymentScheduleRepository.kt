@@ -3,6 +3,7 @@ package com.bos.backend.infrastructure.persistence
 import com.bos.backend.domain.transaction.entity.RepaymentSchedule
 import com.bos.backend.domain.transaction.enum.RepaymentStatus
 import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
+import org.springframework.data.r2dbc.repository.Modifying
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import org.springframework.stereotype.Repository
@@ -39,34 +40,35 @@ interface R2dbcRepaymentScheduleRepository :
     )
     override suspend fun findPendingSchedulesByTransactionId(transactionId: Long): List<RepaymentSchedule>
 
+    @Modifying
     @Query(
         """
         UPDATE repayment_schedules
         SET status = :overdueStatus, updated_at = CURRENT_TIMESTAMP
         WHERE scheduled_date < :today
-        AND status IN (:scheduledStatus, :inProgressStatus)
+        AND status != :completedStatus
         """,
     )
     override suspend fun updateOverdueStatuses(
         today: LocalDate,
         overdueStatus: RepaymentStatus,
-        scheduledStatus: RepaymentStatus,
-        inProgressStatus: RepaymentStatus,
+        completedStatus: RepaymentStatus,
     ): Int
 
+    @Modifying
     @Query(
         """
         UPDATE repayment_schedules
         SET status = :inProgressStatus, updated_at = CURRENT_TIMESTAMP
         WHERE scheduled_date >= :startDate
         AND scheduled_date <= :endDate
-        AND status = :scheduledStatus
+        AND status != :completedStatus
         """,
     )
     override suspend fun updateInProgressStatuses(
         startDate: LocalDate,
         endDate: LocalDate,
         inProgressStatus: RepaymentStatus,
-        scheduledStatus: RepaymentStatus,
+        completedStatus: RepaymentStatus,
     ): Int
 }
