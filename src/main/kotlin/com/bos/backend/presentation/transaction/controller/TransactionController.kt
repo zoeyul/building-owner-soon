@@ -49,11 +49,11 @@ class TransactionController(
         @PathVariable id: Long,
     ): TransactionResponseDTO = transactionService.getTransactionDetail(userId.toLong(), id)
 
-    @GetMapping("/{id}/share")
+    @GetMapping("/{uuid}/share")
     @ResponseStatus(HttpStatus.OK)
     suspend fun getTransactionForShare(
-        @PathVariable id: Long,
-    ): TransactionDetailResponseDTO = transactionService.getTransactionForShare(id)
+        @PathVariable uuid: String,
+    ): TransactionDetailResponseDTO = transactionService.getTransactionForShare(uuid)
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)

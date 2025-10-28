@@ -10,6 +10,7 @@ import java.time.LocalDate
 
 data class TransactionResponseDTO(
     val id: Long,
+    val transactionUuid: String,
     val transactionType: TransactionType,
     val counterpartName: String,
     val counterpartCharacter: CounterpartCharacter,

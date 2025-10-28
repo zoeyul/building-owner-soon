@@ -90,13 +90,13 @@ class TransactionService(
         return toTransactionResponseDTO(transaction, transaction.id)
     }
 
-    suspend fun getTransactionForShare(transactionId: Long): TransactionDetailResponseDTO {
-        val transaction = getTransactionById(transactionId)
+    suspend fun getTransactionForShare(uuid: String): TransactionDetailResponseDTO {
+        val transaction = getTransactionByUuid(uuid)
         val userProfile = userService.getUserProfile(transaction.userId)
-        val repaymentSchedules = repaymentScheduleRepository.findByTransactionId(transactionId)
+        val repaymentSchedules = repaymentScheduleRepository.findByTransactionId(transaction.id!!)
         val sortedSchedules = sortRepaymentSchedules(repaymentSchedules)
         val (borrower, lender) = determineBorrowerAndLender(transaction, userProfile)
-        val calculatedMonthlyAmount = calculateMonthlyAmount(transaction, transactionId)
+        val calculatedMonthlyAmount = calculateMonthlyAmount(transaction, transaction.id!!)
 
         val profileCharacter = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
         val character =
@@ -124,8 +124,12 @@ class TransactionService(
         )
     }
 
-    private suspend fun getTransactionById(transactionId: Long): Transaction =
-        transactionRepository.findById(transactionId)
+//    private suspend fun getTransactionById(transactionId: Long): Transaction =
+//        transactionRepository.findById(transactionId)
+//            ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+
+    private suspend fun getTransactionByUuid(uuid: String): Transaction =
+        transactionRepository.findByUuid(uuid)
             ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
 
     private fun sortRepaymentSchedules(schedules: List<RepaymentSchedule>) =
@@ -388,6 +392,7 @@ class TransactionService(
                 totalAmount = totalAmount,
                 upcomingTransactionInfo = upcomingInfo,
                 transactionId = txList.first().id!!,
+                transactionUuid = txList.first().uuid,
             )
         }
     }
@@ -435,6 +440,7 @@ class TransactionService(
 
         return TransactionResponseDTO(
             id = transaction.id!!,
+            transactionUuid = transaction.uuid,
             transactionType = transaction.transactionType,
             counterpartName = transaction.counterpartName,
             counterpartCharacter = transaction.counterpartCharacter,

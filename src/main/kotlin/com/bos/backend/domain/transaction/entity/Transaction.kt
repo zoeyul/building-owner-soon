@@ -8,11 +8,13 @@ import org.springframework.data.relational.core.mapping.Table
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 @Table("transactions")
 data class Transaction(
     @Id
     val id: Long? = null,
+    val uuid: String = UUID.randomUUID().toString(),
     @Column("user_id")
     val userId: Long,
     @Column("transaction_type")

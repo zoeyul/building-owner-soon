@@ -7,6 +7,8 @@ interface TransactionRepository {
 
     suspend fun findById(id: Long): Transaction?
 
+    suspend fun findByUuid(uuid: String): Transaction?
+
     suspend fun findByUserId(userId: Long): List<Transaction>
 
     suspend fun deleteById(id: Long)

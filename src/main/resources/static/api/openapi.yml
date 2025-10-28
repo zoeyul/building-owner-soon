@@ -909,7 +909,7 @@ paths:
           description: 인증 실패
         "404":
           description: 거래내역을 찾을 수 없음
-  /transactions/{id}/share:
+  /transactions/{uuid}/share:
     get:
       tags:
         - transaction
@@ -917,14 +917,14 @@ paths:
       summary: "공유용 거래내역 조회"
       description: "거래내역을 외부에 공유하기 위한 API입니다. 인증 없이 조회 가능합니다."
       parameters:
-        - name: id
+        - name: uuid
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
-          description: 거래 ID
-          example: 123
+            type: string
+            format: uuid
+          description: 거래 UUID (보안을 위해 숫자 ID 대신 UUID 사용)
+          example: "550e8400-e29b-41d4-a716-446655440000"
       responses:
         "200":
           description: 거래내역 조회 성공
@@ -2264,6 +2264,7 @@ components:
       type: object
       required:
         - id
+        - transactionUuid
         - transactionType
         - counterpartName
         - counterpartCharacter
@@ -2281,6 +2282,11 @@ components:
           format: int64
           description: 거래 ID
           example: 123
+        transactionUuid:
+          type: string
+          format: uuid
+          description: 거래 UUID (공유 링크 생성용)
+          example: "550e8400-e29b-41d4-a716-446655440000"
         transactionType:
           $ref: "#/components/schemas/TransactionType"
         counterpartName:
@@ -2787,6 +2793,7 @@ components:
         - transactionType
         - totalAmount
         - transactionId
+        - transactionUuid
       properties:
         counterpartName:
           type: string
@@ -2890,6 +2897,11 @@ components:
           format: int64
           description: 채무관계의 대표 거래 ID
           example: 123
+        transactionUuid:
+          type: string
+          format: uuid
+          description: 채무관계의 대표 거래 UUID (공유 링크 생성용)
+          example: "550e8400-e29b-41d4-a716-446655440000"
     UpcomingTransactionInfo:
       type: object
       required:
