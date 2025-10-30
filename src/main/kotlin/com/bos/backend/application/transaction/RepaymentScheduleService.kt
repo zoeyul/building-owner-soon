@@ -76,6 +76,10 @@ class RepaymentScheduleService(
 
         validateRepaymentRequest(schedule, transaction, transactionId, userId)
 
+        if (schedule.status == RepaymentStatus.COMPLETED) {
+            throw CustomException(CommonErrorCode.REPAYMENT_ALREADY_COMPLETED)
+        }
+
         val updatedSchedule =
             schedule.copy(
                 status = RepaymentStatus.COMPLETED,
@@ -242,10 +246,21 @@ class RepaymentScheduleService(
         transactionId: Long,
     ) {
         val allSchedules = repaymentScheduleRepository.findByTransactionId(transactionId)
-        val totalCompletedAmount =
+        val schedulesCompletedAmount =
             allSchedules
                 .filter { it.status == RepaymentStatus.COMPLETED }
                 .sumOf { it.actualAmount ?: java.math.BigDecimal.ZERO }
+
+        // 초기 completedAmount 계산 (Transaction 생성 시 설정된 값)
+        // 현재 completedAmount가 스케줄 합계보다 크면 그 차이가 초기값
+        val initialCompletedAmount =
+            if (transaction.completedAmount > schedulesCompletedAmount) {
+                transaction.completedAmount - schedulesCompletedAmount
+            } else {
+                java.math.BigDecimal.ZERO
+            }
+
+        val totalCompletedAmount = initialCompletedAmount + schedulesCompletedAmount
         val updatedTransaction = transaction.updateCompletedAmount(totalCompletedAmount)
         transactionRepository.save(updatedTransaction)
     }
