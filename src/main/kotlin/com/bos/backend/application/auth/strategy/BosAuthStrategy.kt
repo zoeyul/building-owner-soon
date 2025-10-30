@@ -9,6 +9,7 @@ import com.bos.backend.domain.user.enum.ProviderType
 import com.bos.backend.domain.user.factory.CharacterFactory
 import com.bos.backend.domain.user.repository.UserAuthRepository
 import com.bos.backend.domain.user.repository.UserRepository
+import com.bos.backend.domain.user.util.NicknameGenerator
 import com.bos.backend.presentation.auth.dto.SignInRequestDTO
 import com.bos.backend.presentation.auth.dto.SignUpRequestDTO
 import org.springframework.stereotype.Component
@@ -34,8 +35,7 @@ class BosAuthStrategy(
         val user =
             userRepository.save(
                 User(
-                    // TODO: random nickname generator
-                    nickname = "닉네임 임시",
+                    nickname = NicknameGenerator.generateRandomNickname(),
                     character = CharacterFactory.createDefaultCharacter(characterAssetService),
                     isNotificationAllowed = false,
                 ),

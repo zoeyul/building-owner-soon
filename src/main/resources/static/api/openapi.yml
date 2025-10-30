@@ -2132,7 +2132,7 @@ components:
           type: number
           format: decimal
           nullable: true
-          description: 현재까지 완료된 금액
+          description: 현재까지 완료된 금액 (미입력시 0으로 설정됨, 0원 또는 10000원 이상)
           example: 0
           minimum: 0
         memo:

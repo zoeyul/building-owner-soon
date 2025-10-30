@@ -9,6 +9,7 @@ import com.bos.backend.domain.user.enum.ProviderType
 import com.bos.backend.domain.user.factory.CharacterFactory
 import com.bos.backend.domain.user.repository.UserAuthRepository
 import com.bos.backend.domain.user.repository.UserRepository
+import com.bos.backend.domain.user.util.NicknameGenerator
 import com.bos.backend.infrastructure.external.KakaoApiService
 import com.bos.backend.presentation.auth.dto.SignInRequestDTO
 import com.bos.backend.presentation.auth.dto.SignUpRequestDTO
@@ -44,7 +45,7 @@ class KakaoAuthStrategy(
         val user =
             userRepository.save(
                 User(
-                    nickname = "임시 닉네임",
+                    nickname = NicknameGenerator.generateRandomNickname(),
                     character = CharacterFactory.createDefaultCharacter(characterAssetService),
                     isNotificationAllowed = false,
                 ),

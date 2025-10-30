@@ -29,7 +29,7 @@ data class CreateTransactionRequestDTO(
     @field:NotNull(message = "전체 금액은 필수입니다")
     @field:DecimalMin(value = "10000", message = "전체 금액은 10000원 이상이어야 합니다")
     val totalAmount: BigDecimal,
-    @field:DecimalMin(value = "10000", message = "완료된 금액은 10000원 이상이어야 합니다")
+    @field:PositiveOrZero(message = "완료된 금액은 0 이상이어야 합니다")
     val completedAmount: BigDecimal?,
     @field:Size(max = 50, message = "메모는 50자 이내여야 합니다")
     val memo: String?,

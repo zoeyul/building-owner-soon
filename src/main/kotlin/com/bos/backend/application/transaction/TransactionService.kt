@@ -49,6 +49,13 @@ class TransactionService(
         userId: Long,
         createTransactionRequestDTO: CreateTransactionRequestDTO,
     ) {
+        // completedAmount 검증: null이 아니고 0보다 크면 10000 이상이어야 함
+        createTransactionRequestDTO.completedAmount?.let { amount ->
+            if (amount > BigDecimal.ZERO && amount < BigDecimal(10000)) {
+                throw CustomException(CommonErrorCode.INVALID_PARAMETER)
+            }
+        }
+
         transactionalOperator.executeAndAwait {
             val counterpartCharacter =
                 characterBuilder.buildCounterpartCharacter(createTransactionRequestDTO.counterpartCharacter)
