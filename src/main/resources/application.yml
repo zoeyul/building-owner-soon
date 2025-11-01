@@ -46,6 +46,7 @@ app:
     base-url: ${s3-base-url}
 
 firebase:
+  enabled: true
   credentials-path: credentials/firebase-service-account.json
   credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
 logging:

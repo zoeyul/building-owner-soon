@@ -42,6 +42,9 @@ cors:
     - http://localhost:3000
     - http://localhost:8080
 
+firebase:
+  enabled: false
+
 # Test-specific settings
 db-host: r2dbc:h2:mem:///testdb
 db-user: test
