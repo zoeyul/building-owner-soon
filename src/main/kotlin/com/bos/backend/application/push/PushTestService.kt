@@ -66,6 +66,41 @@ class PushTestService(
             sentCount = sendResult.successCount,
         )
     }
+
+    suspend fun sendSimpleTestPush(userId: Long): PushTestResult {
+        // 사용자의 모든 디바이스 조회
+        val devices = userDeviceRepository.findByUserId(userId).toList()
+
+        if (devices.isEmpty()) {
+            logger.warn("푸시 테스트 실패: userId=$userId, FCM 토큰이 등록되지 않음")
+            return PushTestResult(
+                success = false,
+                message = "등록된 FCM 토큰이 없습니다. 먼저 디바이스를 등록해주세요.",
+                sentCount = 0,
+            )
+        }
+
+        // 단순 테스트 푸시 메시지 생성 (딥링크 없음)
+        val pushMessage =
+            PushMessage(
+                title = "테스트",
+                body = "테스트",
+                data = emptyMap(),
+            )
+
+        // 모든 디바이스에 전송
+        val sendResult = fcmPushService.sendToMultipleDevices(devices, pushMessage)
+
+        logger.info(
+            "단순 푸시 테스트 완료: userId=$userId, 성공=${sendResult.successCount}, 실패=${sendResult.failureCount}",
+        )
+
+        return PushTestResult(
+            success = sendResult.successCount > 0,
+            message = "푸시 전송 완료: 성공 ${sendResult.successCount}건, 실패 ${sendResult.failureCount}건",
+            sentCount = sendResult.successCount,
+        )
+    }
 }
 
 data class PushTestResult(

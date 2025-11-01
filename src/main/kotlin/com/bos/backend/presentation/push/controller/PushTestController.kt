@@ -3,6 +3,7 @@ package com.bos.backend.presentation.push.controller
 import com.bos.backend.application.push.PushTestResult
 import com.bos.backend.application.push.PushTestService
 import com.bos.backend.presentation.push.dto.DeepLinkType
+import com.bos.backend.presentation.push.dto.PushSimpleTestRequestDTO
 import com.bos.backend.presentation.push.dto.PushTestRequestDTO
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -30,4 +31,13 @@ class PushTestController(
             transactionId = request.transactionId,
         )
     }
+
+    @PostMapping("/test/simple")
+    suspend fun sendSimpleTestPush(
+        @AuthenticationPrincipal userId: String,
+        @Valid @RequestBody request: PushSimpleTestRequestDTO,
+    ): PushTestResult =
+        pushTestService.sendSimpleTestPush(
+            userId = request.userId,
+        )
 }
