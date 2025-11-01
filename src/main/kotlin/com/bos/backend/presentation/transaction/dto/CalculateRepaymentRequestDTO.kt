@@ -36,8 +36,9 @@ data class FixedMonthlyCalculationRequest(
     override val totalAmount: BigDecimal,
     @field:PositiveOrZero(message = "완료된 금액은 0 이상이어야 합니다")
     override val completedAmount: BigDecimal? = BigDecimal.ZERO,
-    @field:NotNull(message = "완료 예정일은 필수입니다")
-    val targetDate: LocalDate,
+    @field:NotNull(message = "월 납부 금액은 필수입니다")
+    @field:DecimalMin(value = "1000", message = "월 납부 금액은 1000원 이상이어야 합니다")
+    val monthlyAmount: BigDecimal,
     @field:NotNull(message = "매달 납부일은 필수입니다")
     @field:Min(value = 1, message = "매달 납부일은 1 이상이어야 합니다")
     @field:Max(value = 31, message = "매달 납부일은 31 이하여야 합니다")
@@ -54,9 +55,8 @@ data class DividedByPeriodCalculationRequest(
     override val totalAmount: BigDecimal,
     @field:PositiveOrZero(message = "완료된 금액은 0 이상이어야 합니다")
     override val completedAmount: BigDecimal? = BigDecimal.ZERO,
-    @field:NotNull(message = "월 납부 금액은 필수입니다")
-    @field:DecimalMin(value = "1000", message = "월 납부 금액은 1000원 이상이어야 합니다")
-    val monthlyAmount: BigDecimal,
+    @field:NotNull(message = "완료 예정일은 필수입니다")
+    val targetDate: LocalDate,
     @field:NotNull(message = "매달 납부일은 필수입니다")
     @field:Min(value = 1, message = "매달 납부일은 1 이상이어야 합니다")
     @field:Max(value = 31, message = "매달 납부일은 31 이하여야 합니다")

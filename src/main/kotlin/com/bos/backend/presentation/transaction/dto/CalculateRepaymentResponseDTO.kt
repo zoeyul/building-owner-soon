@@ -20,14 +20,14 @@ sealed interface CalculateRepaymentResponse {
 }
 
 data class FixedMonthlyCalculationResponse(
-    val monthlyAmount: BigDecimal,
+    val completionDate: LocalDate,
+    val monthsLater: Int,
 ) : CalculateRepaymentResponse {
     override val repaymentType: RepaymentType = RepaymentType.FIXED_MONTHLY
 }
 
 data class DividedByPeriodCalculationResponse(
-    val completionDate: LocalDate,
-    val monthsLater: Int,
+    val monthlyAmount: BigDecimal,
 ) : CalculateRepaymentResponse {
     override val repaymentType: RepaymentType = RepaymentType.DIVIDED_BY_PERIOD
 }

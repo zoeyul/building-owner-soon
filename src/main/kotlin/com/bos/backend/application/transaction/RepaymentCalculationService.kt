@@ -34,35 +34,6 @@ class RepaymentCalculationService(
             throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "남은 금액이 0보다 커야 합니다")
         }
 
-        if (request.targetDate.isBefore(request.startDate) || request.targetDate.isEqual(request.startDate)) {
-            throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "완료 예정일은 시작일 이후여야 합니다")
-        }
-
-        // RepaymentScheduleCalculator를 사용하여 계산
-        val monthlyAmount =
-            repaymentScheduleCalculator.calculateMonthlyAmount(
-                startDate = request.startDate,
-                targetDate = request.targetDate,
-                paymentDay = request.paymentDay,
-                remainingAmount = remainingAmount,
-            )
-
-        if (monthlyAmount <= BigDecimal.ZERO) {
-            throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "납부 기간이 너무 짧습니다")
-        }
-
-        return FixedMonthlyCalculationResponse(monthlyAmount = monthlyAmount)
-    }
-
-    private fun calculateDividedByPeriod(
-        request: DividedByPeriodCalculationRequest,
-    ): DividedByPeriodCalculationResponse {
-        val remainingAmount = request.totalAmount - (request.completedAmount ?: BigDecimal.ZERO)
-
-        if (remainingAmount <= BigDecimal.ZERO) {
-            throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "남은 금액이 0보다 커야 합니다")
-        }
-
         if (request.monthlyAmount <= BigDecimal.ZERO) {
             throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "월 납부 금액은 0보다 커야 합니다")
         }
@@ -80,9 +51,38 @@ class RepaymentCalculationService(
                 remainingAmount = remainingAmount,
             )
 
-        return DividedByPeriodCalculationResponse(
+        return FixedMonthlyCalculationResponse(
             completionDate = completionDateInfo.completionDate,
             monthsLater = completionDateInfo.monthsLater,
         )
+    }
+
+    private fun calculateDividedByPeriod(
+        request: DividedByPeriodCalculationRequest,
+    ): DividedByPeriodCalculationResponse {
+        val remainingAmount = request.totalAmount - (request.completedAmount ?: BigDecimal.ZERO)
+
+        if (remainingAmount <= BigDecimal.ZERO) {
+            throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "남은 금액이 0보다 커야 합니다")
+        }
+
+        if (request.targetDate.isBefore(request.startDate) || request.targetDate.isEqual(request.startDate)) {
+            throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "완료 예정일은 시작일 이후여야 합니다")
+        }
+
+        // RepaymentScheduleCalculator를 사용하여 계산
+        val monthlyAmount =
+            repaymentScheduleCalculator.calculateMonthlyAmount(
+                startDate = request.startDate,
+                targetDate = request.targetDate,
+                paymentDay = request.paymentDay,
+                remainingAmount = remainingAmount,
+            )
+
+        if (monthlyAmount <= BigDecimal.ZERO) {
+            throw CustomException(CommonErrorCode.INVALID_PARAMETER.name, "납부 기간이 너무 짧습니다")
+        }
+
+        return DividedByPeriodCalculationResponse(monthlyAmount = monthlyAmount)
     }
 }

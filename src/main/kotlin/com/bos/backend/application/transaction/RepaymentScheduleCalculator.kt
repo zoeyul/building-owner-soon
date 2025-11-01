@@ -13,7 +13,6 @@ import java.time.LocalDate
 @Component
 class RepaymentScheduleCalculator {
     companion object {
-        private const val MONTHS_PER_YEAR = 12
         private const val DECIMAL_SCALE = 2
     }
 
@@ -111,7 +110,8 @@ class RepaymentScheduleCalculator {
     }
 
     /**
-     * DIVIDED_BY_PERIOD: 월 납부액으로 완료일 계산
+     * FIXED_MONTHLY: 월 납부액으로 완료일 계산
+     * 정책: 남은 개월 수 = ceil(남은 금액 ÷ 월 납부액) - 올림 처리
      */
     fun calculateCompletionDate(
         startDate: LocalDate,
@@ -119,21 +119,29 @@ class RepaymentScheduleCalculator {
         monthlyAmount: BigDecimal,
         remainingAmount: BigDecimal,
     ): CompletionDateInfo {
-        val schedules = calculateFixedMonthlySchedule(startDate, paymentDay, monthlyAmount, remainingAmount)
+        // 남은 개월 수 = ceil(남은 금액 ÷ 월 납부액) - 올림 처리
+        val monthsNeeded =
+            remainingAmount
+                .divide(monthlyAmount, DECIMAL_SCALE, RoundingMode.UP)
+                .setScale(0, RoundingMode.UP)
+                .toInt()
 
-        if (schedules.isEmpty()) {
+        if (monthsNeeded <= 0) {
             return CompletionDateInfo(startDate, 0)
         }
 
-        val completionDate = schedules.last().scheduledDate
-        val period = java.time.Period.between(startDate, completionDate)
-        val totalMonths = period.years * MONTHS_PER_YEAR + period.months
+        // 완료 예정일 = 시작일 + 남은 개월 수 (납부일 적용)
+        var completionDate = calculateNextPaymentDate(startDate, paymentDay)
+        repeat(monthsNeeded - 1) {
+            completionDate = calculateNextPaymentDate(completionDate, paymentDay)
+        }
 
-        return CompletionDateInfo(completionDate, totalMonths)
+        return CompletionDateInfo(completionDate, monthsNeeded)
     }
 
     /**
-     * FIXED_MONTHLY: 목표일까지의 월 납부액 계산
+     * DIVIDED_BY_PERIOD: 목표일까지의 월 납부액 계산
+     * 정책: 월 납부액 = 남은 금액 ÷ 남은 개월 수
      */
     fun calculateMonthlyAmount(
         startDate: LocalDate,
