@@ -1477,6 +1477,7 @@ components:
       required:
         - deviceId
         - fcmToken
+        - expoToken
       properties:
         deviceId:
           type: string
@@ -1486,10 +1487,10 @@ components:
           maxLength: 255
         fcmToken:
           type: string
-          description: FCM 등록 토큰
-          example: "fcm-token-example-abcdef123456..."
-          minLength: 1
-          maxLength: 255
+          description: FCM 등록 토큰 (device token)
+        expoToken:
+          type: string
+          description: expo 등록 토큰 (expo token)
         platform:
           type: string
           enum:
