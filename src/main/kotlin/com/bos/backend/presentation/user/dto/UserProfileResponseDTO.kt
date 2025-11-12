@@ -7,6 +7,7 @@ data class UserProfileResponseDTO(
     val id: Long,
     val email: String?,
     val nickname: String,
+    val provider: String,
     val character: ProfileCharacter? = null,
     val isNotificationAllowed: Boolean,
     val isMarketingAgreed: Boolean,

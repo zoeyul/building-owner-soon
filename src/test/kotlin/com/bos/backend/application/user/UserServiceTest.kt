@@ -49,6 +49,7 @@ class UserServiceTest :
                             id = testUser.id!!,
                             email = testUserAuth.email,
                             nickname = testUser.nickname,
+                            provider = testUserAuth.providerType.value,
                             character = testUser.character,
                             isNotificationAllowed = testUser.isNotificationAllowed,
                             isMarketingAgreed = testUser.isMarketingAgreed,

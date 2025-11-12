@@ -88,7 +88,14 @@ class TransactionService(
     ): TransactionResponseDTO {
         val transaction =
             transactionRepository.findById(transactionId)
-                ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+                ?: run {
+                    // 삭제된 거래인지 확인
+                    val deletedTransaction = transactionRepository.findByIdIncludingDeleted(transactionId)
+                    if (deletedTransaction != null && deletedTransaction.isDeleted()) {
+                        throw CustomException(CommonErrorCode.RESOURCE_DELETED)
+                    }
+                    throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+                }
 
         if (transaction.userId != userId) {
             throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
@@ -187,15 +194,23 @@ class TransactionService(
         transactionId: Long,
     ): Unit =
         transactionalOperator.executeAndAwait {
+            // 삭제된 거래를 포함하여 조회
             val transaction =
-                transactionRepository.findById(transactionId)
+                transactionRepository.findByIdIncludingDeleted(transactionId)
                     ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
 
+            // 이미 삭제된 거래인지 확인
+            if (transaction.isDeleted()) {
+                throw CustomException(CommonErrorCode.RESOURCE_DELETED)
+            }
+
+            // 소유권 검증
             if (transaction.userId != userId) {
                 throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
             }
 
-            transactionRepository.deleteById(transactionId)
+            // Soft delete 수행
+            transactionRepository.softDeleteById(transactionId)
         }
 
     suspend fun updateTransaction(
@@ -206,7 +221,14 @@ class TransactionService(
         transactionalOperator.executeAndAwait {
             val existingTransaction =
                 transactionRepository.findById(transactionId)
-                    ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+                    ?: run {
+                        // 삭제된 거래인지 확인
+                        val deletedTransaction = transactionRepository.findByIdIncludingDeleted(transactionId)
+                        if (deletedTransaction != null && deletedTransaction.isDeleted()) {
+                            throw CustomException(CommonErrorCode.RESOURCE_DELETED)
+                        }
+                        throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+                    }
 
             if (existingTransaction.userId != userId) {
                 throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)

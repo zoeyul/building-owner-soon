@@ -46,14 +46,24 @@ data class Transaction(
     val createdAt: Instant = Instant.now(),
     @Column("updated_at")
     val updatedAt: Instant = Instant.now(),
+    @Column("deleted_at")
+    val deletedAt: Instant? = null,
 ) {
     fun remainingAmount(): BigDecimal = totalAmount - completedAmount
 
     fun isCompleted(): Boolean = remainingAmount() <= BigDecimal.ZERO
 
+    fun isDeleted(): Boolean = deletedAt != null
+
     fun updateCompletedAmount(newCompletedAmount: BigDecimal): Transaction =
         this.copy(
             completedAmount = newCompletedAmount,
+            updatedAt = Instant.now(),
+        )
+
+    fun delete(): Transaction =
+        this.copy(
+            deletedAt = Instant.now(),
             updatedAt = Instant.now(),
         )
 }

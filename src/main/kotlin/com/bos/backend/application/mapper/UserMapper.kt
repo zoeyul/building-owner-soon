@@ -11,6 +11,7 @@ import org.mapstruct.factory.Mappers
 interface UserMapper {
     @Mapping(source = "user.id", target = "id")
     @Mapping(source = "userAuth.email", target = "email")
+    @Mapping(target = "provider", expression = "java(userAuth.getProviderType().getValue())")
     @Mapping(source = "user.notificationAllowed", target = "isNotificationAllowed")
     @Mapping(source = "user.marketingAgreed", target = "isMarketingAgreed")
     fun toUserProfileDTO(
