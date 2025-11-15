@@ -1,6 +1,7 @@
 package com.bos.backend.application.transaction
 
 import com.bos.backend.application.CustomException
+import com.bos.backend.application.transaction.policy.CompletionDateInfo
 import com.bos.backend.domain.transaction.enum.RepaymentType
 import com.bos.backend.presentation.transaction.dto.DividedByPeriodCalculationRequest
 import com.bos.backend.presentation.transaction.dto.DividedByPeriodCalculationResponse
@@ -190,7 +191,7 @@ class RepaymentCalculationServiceTest :
                             remainingAmount = BigDecimal("1000000"),
                         )
                     } returns
-                        RepaymentScheduleCalculator.CompletionDateInfo(
+                        CompletionDateInfo(
                             completionDate = LocalDate.of(2025, 5, 15),
                             monthsLater = 5,
                         )
@@ -233,7 +234,7 @@ class RepaymentCalculationServiceTest :
                             remainingAmount = BigDecimal("600000"),
                         )
                     } returns
-                        RepaymentScheduleCalculator.CompletionDateInfo(
+                        CompletionDateInfo(
                             completionDate = LocalDate.of(2025, 3, 10),
                             monthsLater = 3,
                         )
@@ -359,7 +360,7 @@ class RepaymentCalculationServiceTest :
                     every {
                         repaymentScheduleCalculator.calculateCompletionDate(any(), any(), any(), any())
                     } returns
-                        RepaymentScheduleCalculator.CompletionDateInfo(
+                        CompletionDateInfo(
                             completionDate = LocalDate.of(2025, 4, 10),
                             monthsLater = 4,
                         )

@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>푸시 알림 테스트 - 내 꿈은 건물주</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-button {
+            background-color: #e5e7eb !important;
+            color: #374151 !important;
+        }
+        .tab-button:hover {
+            background-color: #d1d5db !important;
+        }
+        .tab-button.active {
+            background-color: #2563eb !important;
+            color: white !important;
+        }
+        .tab-button.active:hover {
+            background-color: #1d4ed8 !important;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">푸시 알림 테스트</h1>
+            <p class="text-gray-600">내 꿈은 건물주 - QA 테스트 도구</p>
+        </div>
+
+        <!-- 탭 버튼 -->
+        <div class="bg-white rounded-lg shadow-lg mb-6">
+            <div class="flex flex-wrap gap-2 p-4 border-b">
+                <button onclick="switchTab('reminder-payer', event)" class="tab-button px-4 py-2 rounded-lg transition active">
+                    상환 예정 (갚을 사람)
+                </button>
+                <button onclick="switchTab('reminder-payee', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    상환 예정 (받을 사람)
+                </button>
+                <button onclick="switchTab('today-payer', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    당일 안내 (갚을 사람)
+                </button>
+                <button onclick="switchTab('today-payee', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    당일 안내 (받을 사람)
+                </button>
+                <button onclick="switchTab('overdue-payer', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    지연 경고 (갚을 사람)
+                </button>
+                <button onclick="switchTab('overdue-payee', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    지연 경고 (받을 사람)
+                </button>
+                <button onclick="switchTab('partial-complete', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    부분 상환 완료
+                </button>
+                <button onclick="switchTab('transaction-complete', event)" class="tab-button px-4 py-2 rounded-lg transition">
+                    거래 완료
+                </button>
+            </div>
+
+            <!-- 상환 예정 (갚을 사람) -->
+            <div id="reminder-payer" class="tab-content active p-6">
+                <h2 class="text-2xl font-bold mb-4">상환 예정 안내 (갚을 사람) - D-2</h2>
+                <p class="text-gray-600 mb-4">상환일 2일 전 오전 9시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-reminder-payer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'reminder-payer', 'BORROW')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-reminder-payer" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-reminder-payer" onchange="onTransactionSelected('reminder-payer')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div id="schedule-selector-reminder-payer" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 선택</label>
+                            <select id="schedule-select-reminder-payer" onchange="onScheduleSelected('reminder-payer')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">스케줄을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'repayment-reminder-payer')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-reminder-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-reminder-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">받을 사람 이름</label>
+                            <input type="text" name="partnerName" id="partnerName-reminder-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-reminder-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-reminder-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 ID</label>
+                            <input type="number" name="scheduleId" id="scheduleId-reminder-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 상환 예정 (받을 사람) -->
+            <div id="reminder-payee" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">상환 예정 안내 (받을 사람) - D-2</h2>
+                <p class="text-gray-600 mb-4">상환일 2일 전 오전 9시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-reminder-payee" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'reminder-payee', 'LEND')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-reminder-payee" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-reminder-payee" onchange="onTransactionSelected('reminder-payee')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div id="schedule-selector-reminder-payee" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 선택</label>
+                            <select id="schedule-select-reminder-payee" onchange="onScheduleSelected('reminder-payee')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">스케줄을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'repayment-reminder-payee')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-reminder-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-reminder-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">갚을 사람 이름</label>
+                            <input type="text" name="partnerName" id="partnerName-reminder-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-reminder-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-reminder-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 ID</label>
+                            <input type="number" name="scheduleId" id="scheduleId-reminder-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 당일 안내 (갚을 사람) -->
+            <div id="today-payer" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">상환일 당일 안내 (갚을 사람)</h2>
+                <p class="text-gray-600 mb-4">상환일 당일 오전 9시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-today-payer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'today-payer', 'BORROW')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-today-payer" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-today-payer" onchange="onTransactionSelected('today-payer')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div id="schedule-selector-today-payer" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 선택</label>
+                            <select id="schedule-select-today-payer" onchange="onScheduleSelected('today-payer')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">스케줄을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'repayment-today-payer')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-today-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-today-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">받을 사람 이름</label>
+                            <input type="text" name="partnerName" id="partnerName-today-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-today-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-today-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 ID</label>
+                            <input type="number" name="scheduleId" id="scheduleId-today-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 당일 안내 (받을 사람) -->
+            <div id="today-payee" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">상환일 당일 안내 (받을 사람)</h2>
+                <p class="text-gray-600 mb-4">상환일 당일 오전 9시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-today-payee" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'today-payee', 'LEND')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-today-payee" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-today-payee" onchange="onTransactionSelected('today-payee')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div id="schedule-selector-today-payee" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 선택</label>
+                            <select id="schedule-select-today-payee" onchange="onScheduleSelected('today-payee')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">스케줄을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'repayment-today-payee')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-today-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-today-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">갚을 사람 이름</label>
+                            <input type="text" name="partnerName" id="partnerName-today-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-today-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-today-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 ID</label>
+                            <input type="number" name="scheduleId" id="scheduleId-today-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 지연 경고 (갚을 사람) -->
+            <div id="overdue-payer" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">상환 지연 경고 (갚을 사람)</h2>
+                <p class="text-gray-600 mb-4">상환일 익일 오전 9시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-overdue-payer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'overdue-payer', 'BORROW')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-overdue-payer" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-overdue-payer" onchange="onTransactionSelected('overdue-payer')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div id="schedule-selector-overdue-payer" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 선택</label>
+                            <select id="schedule-select-overdue-payer" onchange="onScheduleSelected('overdue-payer')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">스케줄을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'repayment-overdue-payer')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-overdue-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-overdue-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-overdue-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-overdue-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 ID</label>
+                            <input type="number" name="scheduleId" id="scheduleId-overdue-payer" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 지연 경고 (받을 사람) -->
+            <div id="overdue-payee" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">상환 지연 경고 (받을 사람)</h2>
+                <p class="text-gray-600 mb-4">상환일 익일 오전 9시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-overdue-payee" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'overdue-payee', 'LEND')" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-overdue-payee" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-overdue-payee" onchange="onTransactionSelected('overdue-payee')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div id="schedule-selector-overdue-payee" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 선택</label>
+                            <select id="schedule-select-overdue-payee" onchange="onScheduleSelected('overdue-payee')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">스케줄을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'repayment-overdue-payee')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-overdue-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-overdue-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-overdue-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-overdue-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">스케줄 ID</label>
+                            <input type="number" name="scheduleId" id="scheduleId-overdue-payee" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 부분 상환 완료 -->
+            <div id="partial-complete" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">부분 상환 완료 안내</h2>
+                <p class="text-gray-600 mb-4">상환 1회 완료 시 즉시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-partial-complete" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'partial-complete', null)" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-partial-complete" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-partial-complete" onchange="onTransactionSelected('partial-complete')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'partial-repayment-complete')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-partial-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-partial-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 상대 이름</label>
+                            <input type="text" name="partnerName" id="partnerName-partial-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">상환 금액</label>
+                            <input type="number" name="amount" id="amount-partial-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">진행률 (%)</label>
+                            <input type="number" name="progress" id="progress-partial-complete" min="0" max="100" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-partial-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- 거래 완료 -->
+            <div id="transaction-complete" class="tab-content p-6">
+                <h2 class="text-2xl font-bold mb-4">거래 내역 최종 완료 안내</h2>
+                <p class="text-gray-600 mb-4">전체 금액 상환 완료 시 즉시 발송</p>
+
+                <!-- 데이터 조회 영역 -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID로 데이터 조회</label>
+                            <input type="number" id="lookup-userId-transaction-complete" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <button onclick="lookupData(event, 'transaction-complete', null)" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold">
+                            데이터 조회
+                        </button>
+                    </div>
+                    <div id="data-selector-transaction-complete" class="hidden mt-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 선택</label>
+                            <select id="transaction-select-transaction-complete" onchange="onTransactionSelected('transaction-complete')" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                                <option value="">거래를 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="sendPush(event, 'transaction-complete')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                            <input type="number" name="userId" id="userId-transaction-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                            <input type="text" name="nickname" id="nickname-transaction-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 상대 이름</label>
+                            <input type="text" name="partnerName" id="partnerName-transaction-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">거래 ID</label>
+                            <input type="number" name="transactionId" id="transactionId-transaction-complete" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        푸시 전송
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 응답 표시 영역 -->
+        <div id="response-area" class="bg-white rounded-lg shadow-lg p-6 hidden">
+            <h3 class="text-xl font-bold mb-4">응답 결과</h3>
+            <div id="response-content"></div>
+        </div>
+
+        <!-- 테스트 이력 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">최근 테스트 이력</h3>
+                <button onclick="clearHistory()" class="text-sm text-red-600 hover:text-red-800">전체 삭제</button>
+            </div>
+            <div id="history-list" class="space-y-2">
+                <p class="text-gray-500 text-sm">아직 테스트 이력이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 탭 전환
+        function switchTab(tabId, event) {
+            // 모든 탭 버튼과 콘텐츠 비활성화
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // 선택된 탭 활성화
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // event가 없을 경우 tabId로 버튼 찾기
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    if (btn.getAttribute('onclick').includes(`'${tabId}'`)) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // 푸시 전송
+        async function sendPush(event, endpoint) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {};
+
+            formData.forEach((value, key) => {
+                // 숫자 필드는 정수로 변환
+                if (['userId', 'amount', 'transactionId', 'scheduleId', 'progress'].includes(key)) {
+                    data[key] = parseInt(value);
+                } else {
+                    data[key] = value;
+                }
+            });
+
+            // 로딩 표시
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '전송 중...';
+
+            try {
+                const response = await fetch(`/push/test/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                // 응답 표시
+                showResponse(result, response.ok);
+
+                // 이력 저장
+                saveToHistory(endpoint, data, result, response.ok);
+
+            } catch (error) {
+                showResponse({ error: error.message }, false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        // 응답 표시
+        function showResponse(result, success) {
+            const responseArea = document.getElementById('response-area');
+            const responseContent = document.getElementById('response-content');
+
+            responseArea.classList.remove('hidden');
+
+            const statusColor = success ? 'text-green-600' : 'text-red-600';
+            const statusBg = success ? 'bg-green-50' : 'bg-red-50';
+            const statusBorder = success ? 'border-green-200' : 'border-red-200';
+
+            responseContent.innerHTML = `
+                <div class="${statusBg} ${statusBorder} border rounded-lg p-4 mb-4">
+                    <p class="${statusColor} font-semibold text-lg">
+                        ${success ? '✓ 성공' : '✗ 실패'}
+                    </p>
+                    ${result.message ? `<p class="text-gray-700 mt-2">${result.message}</p>` : ''}
+                    ${result.sentCount !== undefined ? `<p class="text-gray-600 text-sm mt-1">전송 성공: ${result.sentCount}건</p>` : ''}
+                </div>
+                <details class="cursor-pointer">
+                    <summary class="font-semibold text-gray-700 hover:text-gray-900">전체 응답 보기</summary>
+                    <pre class="mt-2 p-4 bg-gray-50 rounded-lg overflow-x-auto text-xs">${JSON.stringify(result, null, 2)}</pre>
+                </details>
+            `;
+
+            responseArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // 이력 저장
+        function saveToHistory(endpoint, request, response, success) {
+            const history = JSON.parse(localStorage.getItem('pushTestHistory') || '[]');
+
+            history.unshift({
+                timestamp: new Date().toISOString(),
+                endpoint,
+                request,
+                response,
+                success
+            });
+
+            // 최대 20개만 저장
+            if (history.length > 20) {
+                history.pop();
+            }
+
+            localStorage.setItem('pushTestHistory', JSON.stringify(history));
+            displayHistory();
+        }
+
+        // 이력 표시
+        function displayHistory() {
+            const history = JSON.parse(localStorage.getItem('pushTestHistory') || '[]');
+            const historyList = document.getElementById('history-list');
+
+            if (history.length === 0) {
+                historyList.innerHTML = '<p class="text-gray-500 text-sm">아직 테스트 이력이 없습니다.</p>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(item => {
+                const date = new Date(item.timestamp);
+                const timeStr = date.toLocaleString('ko-KR');
+                const statusColor = item.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+
+                return `
+                    <div class="border rounded-lg p-3 hover:bg-gray-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="${statusColor} text-xs px-2 py-1 rounded-full font-medium">
+                                    ${item.success ? '성공' : '실패'}
+                                </span>
+                                <span class="text-sm font-medium ml-2">${item.endpoint}</span>
+                            </div>
+                            <span class="text-xs text-gray-500">${timeStr}</span>
+                        </div>
+                        <div class="text-xs text-gray-600">
+                            사용자 ID: ${item.request.userId},
+                            ${item.request.nickname ? `닉네임: ${item.request.nickname}` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 이력 삭제
+        function clearHistory() {
+            if (confirm('모든 테스트 이력을 삭제하시겠습니까?')) {
+                localStorage.removeItem('pushTestHistory');
+                displayHistory();
+            }
+        }
+
+        // 페이지 로드 시 이력 표시
+        window.addEventListener('DOMContentLoaded', displayHistory);
+
+        // ===== 데이터 조회 기능 =====
+        let lookupDataCache = {}; // 조회한 데이터 캐시
+
+        // 데이터 조회
+        async function lookupData(event, tabId, transactionType) {
+            event.preventDefault();
+
+            const userId = document.getElementById(`lookup-userId-${tabId}`).value;
+            if (!userId) {
+                alert('사용자 ID를 입력하세요');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/push/test/lookup/${userId}`);
+                if (!response.ok) {
+                    throw new Error(`조회 실패: ${response.status}`);
+                }
+
+                const data = await response.json();
+                lookupDataCache[tabId] = data;
+
+                // 거래 타입에 따라 필터링
+                let filteredTransactions = data.transactions;
+                if (transactionType) {
+                    filteredTransactions = data.transactions.filter(t => t.transactionType === transactionType);
+                }
+
+                // 거래 선택 박스 채우기
+                populateTransactionDropdown(tabId, data.nickname, filteredTransactions);
+
+                // 선택 영역 표시
+                document.getElementById(`data-selector-${tabId}`).classList.remove('hidden');
+
+            } catch (error) {
+                alert(`데이터 조회 실패: ${error.message}`);
+            }
+        }
+
+        // 거래 드롭다운 채우기
+        function populateTransactionDropdown(tabId, nickname, transactions) {
+            const select = document.getElementById(`transaction-select-${tabId}`);
+            select.innerHTML = '<option value="">거래를 선택하세요</option>';
+
+            if (transactions.length === 0) {
+                select.innerHTML = '<option value="">사용 가능한 거래가 없습니다</option>';
+                return;
+            }
+
+            transactions.forEach(transaction => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(transaction);
+                option.textContent = `[ID: ${transaction.transactionId}] ${transaction.counterpartName} - ${transaction.totalAmount.toLocaleString()}원 (${transaction.transactionType === 'LEND' ? '빌려줌' : '빌림'})`;
+                select.appendChild(option);
+            });
+        }
+
+        // 거래 선택 시
+        function onTransactionSelected(tabId) {
+            const select = document.getElementById(`transaction-select-${tabId}`);
+            const selectedValue = select.value;
+
+            if (!selectedValue) return;
+
+            const transaction = JSON.parse(selectedValue);
+            const data = lookupDataCache[tabId];
+
+            // 폼 필드 자동 채우기
+            document.getElementById(`userId-${tabId}`).value = data.userId;
+            document.getElementById(`nickname-${tabId}`).value = data.nickname;
+
+            // partnerName 필드가 있는 경우에만 채우기
+            const partnerNameField = document.getElementById(`partnerName-${tabId}`);
+            if (partnerNameField) {
+                partnerNameField.value = transaction.counterpartName;
+            }
+
+            document.getElementById(`transactionId-${tabId}`).value = transaction.transactionId;
+
+            // 부분 상환 완료 탭의 경우 amount와 progress 필드 채우기
+            if (tabId === 'partial-complete') {
+                const amountField = document.getElementById(`amount-${tabId}`);
+                const progressField = document.getElementById(`progress-${tabId}`);
+
+                if (amountField && transaction.lastCompletedAmount) {
+                    amountField.value = transaction.lastCompletedAmount;
+                }
+
+                if (progressField && transaction.completedPercentage !== undefined) {
+                    progressField.value = transaction.completedPercentage;
+                }
+            }
+
+            // 스케줄이 있는 경우
+            if (transaction.schedules && transaction.schedules.length > 0) {
+                populateScheduleDropdown(tabId, transaction.schedules);
+                document.getElementById(`schedule-selector-${tabId}`)?.classList.remove('hidden');
+            } else {
+                document.getElementById(`schedule-selector-${tabId}`)?.classList.add('hidden');
+            }
+        }
+
+        // 스케줄 드롭다운 채우기
+        function populateScheduleDropdown(tabId, schedules) {
+            const select = document.getElementById(`schedule-select-${tabId}`);
+            if (!select) return;
+
+            select.innerHTML = '<option value="">스케줄을 선택하세요</option>';
+
+            schedules.forEach(schedule => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(schedule);
+                const statusText = schedule.status === 'SCHEDULED' ? '예정' : schedule.status === 'IN_PROGRESS' ? '진행중' : '지연';
+                option.textContent = `[ID: ${schedule.scheduleId}] ${schedule.scheduledDate} - ${schedule.scheduledAmount.toLocaleString()}원 (${statusText})`;
+                select.appendChild(option);
+            });
+        }
+
+        // 스케줄 선택 시
+        function onScheduleSelected(tabId) {
+            const select = document.getElementById(`schedule-select-${tabId}`);
+            const selectedValue = select.value;
+
+            if (!selectedValue) return;
+
+            const schedule = JSON.parse(selectedValue);
+
+            // 폼 필드 자동 채우기
+            document.getElementById(`scheduleId-${tabId}`).value = schedule.scheduleId;
+            document.getElementById(`amount-${tabId}`).value = schedule.scheduledAmount;
+        }
+    </script>
+</body>
+</html>

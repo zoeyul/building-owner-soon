@@ -37,18 +37,14 @@ spring:
 application:
   jwt:
     secret: ${jwt-secret}
-    access-token-expiration: 120 # 60 * 5 (2 minutes)
-    refresh-token-expiration: 300 # 3600 * 24 * 7(1 hour)
+    access-token-expiration: 3600 # 60 * 60 (1hour minutes)
+    refresh-token-expiration: 604800 # 3600 * 24 * 7(1 hour)
 
 app:
   s3:
     bucket-name: ${s3-bucket-name}
     base-url: ${s3-base-url}
 
-firebase:
-  enabled: true
-  credentials-path: credentials/firebase-service-account.json
-  credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
 logging:
   level:
     org.springframework.data.r2dbc: DEBUG
@@ -72,6 +68,10 @@ cors:
     - "PATCH"
   allowed-headers:
     - "*"
-
 server:
   port: 8000
+push:
+  test:
+    auth:
+      username: ${push-test-name}
+      password: ${push-test-password}

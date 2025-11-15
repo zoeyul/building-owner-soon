@@ -19,6 +19,10 @@ interface UserDeviceCoroutineRepository : CoroutineCrudRepository<UserDevice, Lo
     @Modifying
     @Query("DELETE FROM user_devices WHERE fcm_token = :fcmToken")
     suspend fun deleteByFcmToken(fcmToken: String): Long
+
+    @Modifying
+    @Query("DELETE FROM user_devices WHERE expo_token = :expoToken")
+    suspend fun deleteByExpoToken(expoToken: String): Long
 }
 
 @Repository
@@ -43,4 +47,6 @@ class R2dbcUserDeviceRepositoryImpl(
     }
 
     override suspend fun deleteByFcmToken(fcmToken: String): Long = coroutineRepository.deleteByFcmToken(fcmToken)
+
+    override suspend fun deleteByExpoToken(expoToken: String): Long = coroutineRepository.deleteByExpoToken(expoToken)
 }

@@ -45,6 +45,12 @@ cors:
 firebase:
   enabled: false
 
+push:
+  test:
+    auth:
+      username: test-push-user
+      password: test-push-password
+
 # Test-specific settings
 db-host: r2dbc:h2:mem:///testdb
 db-user: test

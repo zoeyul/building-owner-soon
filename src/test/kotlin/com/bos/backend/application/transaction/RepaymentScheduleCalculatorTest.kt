@@ -1,5 +1,8 @@
 package com.bos.backend.application.transaction
 
+import com.bos.backend.application.transaction.policy.DividedByPeriodPolicy
+import com.bos.backend.application.transaction.policy.FixedMonthlyPolicy
+import com.bos.backend.application.transaction.policy.FlexiblePolicy
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import java.math.BigDecimal
@@ -7,7 +10,12 @@ import java.time.LocalDate
 
 class RepaymentScheduleCalculatorTest :
     DescribeSpec({
-        val calculator = RepaymentScheduleCalculator()
+        val calculator =
+            RepaymentScheduleCalculator(
+                dividedByPeriodPolicy = DividedByPeriodPolicy(),
+                fixedMonthlyPolicy = FixedMonthlyPolicy(),
+                flexiblePolicy = FlexiblePolicy(),
+            )
 
         describe("calculateMonthlyAmount - DIVIDED_BY_PERIOD 정책") {
             context("완료 예정일이 주어지면") {
@@ -28,7 +36,8 @@ class RepaymentScheduleCalculatorTest :
                         )
 
                     // then: 1월 15일, 2월 15일, 3월 15일, 4월 15일, 5월 15일, 6월 15일 = 6회
-                    monthlyAmount shouldBe BigDecimal("166666.67")
+                    // 100원 단위 절삭: (1,000,000 / 100) / 6 * 100 = 166,600원
+                    monthlyAmount shouldBe BigDecimal("166600")
                 }
 
                 it("예: 100만원, 5개월 → 월 20만원을 계산한다") {
@@ -48,7 +57,8 @@ class RepaymentScheduleCalculatorTest :
                         )
 
                     // then: 1월 15일, 2월 15일, 3월 15일, 4월 15일, 5월 15일 = 5회
-                    monthlyAmount shouldBe BigDecimal("200000.00")
+                    // 100원 단위 절삭: (1,000,000 / 100) / 5 * 100 = 200,000원
+                    monthlyAmount shouldBe BigDecimal("200000")
                 }
 
                 it("납부 기간이 없으면 0원을 반환한다") {
@@ -72,15 +82,15 @@ class RepaymentScheduleCalculatorTest :
                 }
             }
 
-            context("반올림 처리") {
-                it("소수점 둘째 자리에서 반올림한다") {
+            context("100원 단위 절삭 처리") {
+                it("100원 단위로 절삭한다") {
                     // given
                     val startDate = LocalDate.of(2025, 1, 1)
                     val targetDate = LocalDate.of(2025, 3, 15)
                     val paymentDay = 15
                     val remainingAmount = BigDecimal("100000")
 
-                    // when: 100000 ÷ 3 = 33333.333...
+                    // when: 100,000원 ÷ 3회
                     val monthlyAmount =
                         calculator.calculateMonthlyAmount(
                             startDate = startDate,
@@ -89,8 +99,8 @@ class RepaymentScheduleCalculatorTest :
                             remainingAmount = remainingAmount,
                         )
 
-                    // then: 반올림하여 33333.33
-                    monthlyAmount shouldBe BigDecimal("33333.33")
+                    // then: 100원 단위 절삭: (100,000 / 100) / 3 * 100 = 33,300원
+                    monthlyAmount shouldBe BigDecimal("33300")
                 }
             }
         }
@@ -279,13 +289,14 @@ class RepaymentScheduleCalculatorTest :
                         )
 
                     // then: 1/15, 2/15, 3/15 = 3회
+                    // 100원 단위 절삭: (300,000 / 100) / 3 * 100 = 100,000원
                     schedules.size shouldBe 3
-                    schedules[0].scheduledAmount shouldBe BigDecimal("100000.00")
-                    schedules[1].scheduledAmount shouldBe BigDecimal("100000.00")
-                    schedules[2].scheduledAmount shouldBe BigDecimal("100000.00")
+                    schedules[0].scheduledAmount shouldBe BigDecimal("100000")
+                    schedules[1].scheduledAmount shouldBe BigDecimal("100000")
+                    schedules[2].scheduledAmount shouldBe BigDecimal("100000")
                 }
 
-                it("마지막 납부는 반올림 오차를 보정한다") {
+                it("마지막 납부는 절삭 오차를 보정한다") {
                     // given
                     val startDate = LocalDate.of(2025, 1, 1)
                     val targetDate = LocalDate.of(2025, 3, 15)
@@ -301,11 +312,11 @@ class RepaymentScheduleCalculatorTest :
                             remainingAmount = remainingAmount,
                         )
 
-                    // then: 33333.33 + 33333.33 + 33333.34 = 100000
+                    // then: 100원 단위 절삭으로 33,300 + 33,300 + 33,400 = 100,000
                     schedules.size shouldBe 3
-                    schedules[0].scheduledAmount shouldBe BigDecimal("33333.33")
-                    schedules[1].scheduledAmount shouldBe BigDecimal("33333.33")
-                    schedules[2].scheduledAmount shouldBe BigDecimal("33333.34")
+                    schedules[0].scheduledAmount shouldBe BigDecimal("33300")
+                    schedules[1].scheduledAmount shouldBe BigDecimal("33300")
+                    schedules[2].scheduledAmount shouldBe BigDecimal("33400")
                 }
             }
         }

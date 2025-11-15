@@ -1,20 +1,14 @@
 package com.bos.backend.presentation.push.controller
 
 import com.bos.backend.application.push.ExpoPushService
-import com.bos.backend.application.push.PushTestResult
-import com.bos.backend.application.push.PushTestService
 import com.bos.backend.domain.push.ExpoPushMessage
 import com.bos.backend.domain.user.repository.UserDeviceRepository
-import com.bos.backend.presentation.push.dto.DeepLinkType
 import com.bos.backend.presentation.push.dto.DeviceInfo
 import com.bos.backend.presentation.push.dto.ErrorInfo
 import com.bos.backend.presentation.push.dto.ExpoPushTestRequestDTO
 import com.bos.backend.presentation.push.dto.ExpoPushTestResponseDTO
-import com.bos.backend.presentation.push.dto.PushSimpleTestRequestDTO
-import com.bos.backend.presentation.push.dto.PushTestRequestDTO
 import jakarta.validation.Valid
 import kotlinx.coroutines.flow.toList
-import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -23,34 +17,9 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/push")
 class PushTestController(
-    private val pushTestService: PushTestService,
     private val expoPushService: ExpoPushService,
     private val userDeviceRepository: UserDeviceRepository,
 ) {
-    @PostMapping("/test")
-    suspend fun sendTestPush(
-        @AuthenticationPrincipal userId: String,
-        @Valid @RequestBody request: PushTestRequestDTO,
-    ): PushTestResult {
-        val deepLinkType = DeepLinkType.fromString(request.deepLinkType)
-
-        return pushTestService.sendTestPush(
-            userId = userId.toLong(),
-            message = request.message,
-            deepLinkType = deepLinkType,
-            transactionId = request.transactionId,
-        )
-    }
-
-    @PostMapping("/test/simple")
-    suspend fun sendSimpleTestPush(
-        @AuthenticationPrincipal userId: String,
-        @Valid @RequestBody request: PushSimpleTestRequestDTO,
-    ): PushTestResult =
-        pushTestService.sendSimpleTestPush(
-            userId = request.userId,
-        )
-
     @PostMapping("/test/expo")
     @Suppress("LongMethod")
     suspend fun sendExpoTestPush(
@@ -89,7 +58,7 @@ class PushTestController(
             val deviceInfo =
                 DeviceInfo(
                     userId = device.userId,
-                    token = device.fcmToken,
+                    token = device.expoToken!!,
                     platform = device.platform?.name,
                     updatedAt = device.updatedAt,
                     success = result.success,
@@ -105,8 +74,8 @@ class PushTestController(
             } else {
                 failureCount++
                 val errorMsg =
-                    result.errorMessage?.let { "토큰 ${device.fcmToken}: $it" }
-                        ?: "토큰 ${device.fcmToken} 전송 실패"
+                    result.errorMessage?.let { "토큰 ${device.expoToken}: $it" }
+                        ?: "토큰 ${device.expoToken} 전송 실패"
                 errorMessages.add(errorMsg)
             }
         }

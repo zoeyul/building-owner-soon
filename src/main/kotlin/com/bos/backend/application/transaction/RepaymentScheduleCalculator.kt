@@ -1,23 +1,32 @@
 package com.bos.backend.application.transaction
 
+import com.bos.backend.application.transaction.policy.CompletionDateInfo
+import com.bos.backend.application.transaction.policy.DividedByPeriodPolicy
+import com.bos.backend.application.transaction.policy.FixedMonthlyPolicy
+import com.bos.backend.application.transaction.policy.FlexiblePolicy
+import com.bos.backend.application.transaction.policy.PaymentSchedule
+import com.bos.backend.application.transaction.policy.RepaymentAmountPolicy
+import com.bos.backend.application.transaction.policy.ScheduleCalculationParams
+import com.bos.backend.application.transaction.policy.calculateNextPaymentDate
+import com.bos.backend.domain.transaction.enum.RepaymentType
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 
 /**
- * 상환 스케줄 계산 정책
+ * 상환 스케줄 계산기
  *
+ * Strategy Pattern을 사용하여 각 상환 타입별 정책을 적용
  * 거래내역 생성 시와 계산 API에서 동일한 로직을 사용하도록 통합
  */
 @Component
-class RepaymentScheduleCalculator {
-    companion object {
-        private const val DECIMAL_SCALE = 2
-    }
-
+class RepaymentScheduleCalculator(
+    private val dividedByPeriodPolicy: DividedByPeriodPolicy,
+    private val fixedMonthlyPolicy: FixedMonthlyPolicy,
+    private val flexiblePolicy: FlexiblePolicy,
+) {
     /**
-     * DIVIDED_BY_PERIOD: 목표일까지 균등 분할
+     * DIVIDED_BY_PERIOD: 목표일까지 균등 분할 (100원 단위 절삭 적용)
      * 시작일부터 목표일까지의 납부 날짜를 계산하고, 금액을 균등 분할
      */
     fun calculateDividedByPeriodSchedule(
@@ -26,40 +35,18 @@ class RepaymentScheduleCalculator {
         paymentDay: Int,
         remainingAmount: BigDecimal,
     ): List<PaymentSchedule> {
-        val schedules = mutableListOf<PaymentSchedule>()
-        var currentDate = calculateNextPaymentDate(startDate, paymentDay)
-
-        // 납부 날짜 리스트 생성
-        val paymentDates = mutableListOf<LocalDate>()
-        while (currentDate.isBefore(targetDate) || currentDate.isEqual(targetDate)) {
-            paymentDates.add(currentDate)
-            currentDate = calculateNextPaymentDate(currentDate, paymentDay)
-        }
-
-        if (paymentDates.isEmpty()) {
-            return emptyList()
-        }
-
-        // 균등 분할 금액 계산
-        val amountPerPeriod = remainingAmount.divide(BigDecimal(paymentDates.size), DECIMAL_SCALE, RoundingMode.HALF_UP)
-
-        paymentDates.forEachIndexed { index, paymentDate ->
-            val amount =
-                if (index == paymentDates.size - 1) {
-                    // 마지막 납부는 나머지 금액 (반올림 오차 보정)
-                    remainingAmount - amountPerPeriod.multiply(BigDecimal(paymentDates.size - 1))
-                } else {
-                    amountPerPeriod
-                }
-
-            schedules.add(PaymentSchedule(paymentDate, amount))
-        }
-
-        return schedules
+        val params =
+            ScheduleCalculationParams(
+                startDate = startDate,
+                remainingAmount = remainingAmount,
+                paymentDay = paymentDay,
+                targetDate = targetDate,
+            )
+        return dividedByPeriodPolicy.calculateSchedule(params)
     }
 
     /**
-     * FIXED_MONTHLY: 고정 월납
+     * FIXED_MONTHLY: 고정 월납 (마지막 회차에 남은 금액 전부)
      * 월 납부액이 정해져 있고, 잔액이 0이 될 때까지 반복
      */
     fun calculateFixedMonthlySchedule(
@@ -68,20 +55,14 @@ class RepaymentScheduleCalculator {
         monthlyAmount: BigDecimal,
         remainingAmount: BigDecimal,
     ): List<PaymentSchedule> {
-        val schedules = mutableListOf<PaymentSchedule>()
-        var currentDate = calculateNextPaymentDate(startDate, paymentDay)
-        var remaining = remainingAmount
-
-        while (remaining > BigDecimal.ZERO) {
-            val paymentAmount = if (remaining < monthlyAmount) remaining else monthlyAmount
-
-            schedules.add(PaymentSchedule(currentDate, paymentAmount))
-
-            remaining -= paymentAmount
-            currentDate = calculateNextPaymentDate(currentDate, paymentDay)
-        }
-
-        return schedules
+        val params =
+            ScheduleCalculationParams(
+                startDate = startDate,
+                remainingAmount = remainingAmount,
+                paymentDay = paymentDay,
+                monthlyAmount = monthlyAmount,
+            )
+        return fixedMonthlyPolicy.calculateSchedule(params)
     }
 
     /**
@@ -96,17 +77,7 @@ class RepaymentScheduleCalculator {
         baseDate: LocalDate,
         paymentDay: Int,
     ): LocalDate {
-        val targetMonth =
-            if (baseDate.dayOfMonth >= paymentDay) {
-                baseDate.plusMonths(1)
-            } else {
-                baseDate
-            }
-
-        val lastDayOfMonth = targetMonth.lengthOfMonth()
-        val adjustedPaymentDay = if (paymentDay > lastDayOfMonth) lastDayOfMonth else paymentDay
-
-        return targetMonth.withDayOfMonth(adjustedPaymentDay)
+        return com.bos.backend.application.transaction.policy.calculateNextPaymentDate(baseDate, paymentDay)
     }
 
     /**
@@ -119,29 +90,20 @@ class RepaymentScheduleCalculator {
         monthlyAmount: BigDecimal,
         remainingAmount: BigDecimal,
     ): CompletionDateInfo {
-        // 남은 개월 수 = ceil(남은 금액 ÷ 월 납부액) - 올림 처리
-        val monthsNeeded =
-            remainingAmount
-                .divide(monthlyAmount, DECIMAL_SCALE, RoundingMode.UP)
-                .setScale(0, RoundingMode.UP)
-                .toInt()
-
-        if (monthsNeeded <= 0) {
-            return CompletionDateInfo(startDate, 0)
-        }
-
-        // 완료 예정일 = 시작일 + 남은 개월 수 (납부일 적용)
-        var completionDate = calculateNextPaymentDate(startDate, paymentDay)
-        repeat(monthsNeeded - 1) {
-            completionDate = calculateNextPaymentDate(completionDate, paymentDay)
-        }
-
-        return CompletionDateInfo(completionDate, monthsNeeded)
+        val params =
+            ScheduleCalculationParams(
+                startDate = startDate,
+                remainingAmount = remainingAmount,
+                paymentDay = paymentDay,
+                monthlyAmount = monthlyAmount,
+            )
+        return fixedMonthlyPolicy.calculateCompletionDate(params)
+            ?: CompletionDateInfo(startDate, 0)
     }
 
     /**
-     * DIVIDED_BY_PERIOD: 목표일까지의 월 납부액 계산
-     * 정책: 월 납부액 = 남은 금액 ÷ 남은 개월 수
+     * DIVIDED_BY_PERIOD: 목표일까지의 월 납부액 계산 (100원 단위 절삭 적용)
+     * 정책: 월 납부액 = 남은 금액 ÷ 남은 개월 수 (100원 단위 절삭)
      */
     fun calculateMonthlyAmount(
         startDate: LocalDate,
@@ -149,35 +111,24 @@ class RepaymentScheduleCalculator {
         paymentDay: Int,
         remainingAmount: BigDecimal,
     ): BigDecimal {
-        // 납부 날짜 리스트 생성
-        var currentDate = calculateNextPaymentDate(startDate, paymentDay)
-        val paymentDates = mutableListOf<LocalDate>()
-
-        while (currentDate.isBefore(targetDate) || currentDate.isEqual(targetDate)) {
-            paymentDates.add(currentDate)
-            currentDate = calculateNextPaymentDate(currentDate, paymentDay)
-        }
-
-        if (paymentDates.isEmpty()) {
-            return BigDecimal.ZERO
-        }
-
-        return remainingAmount.divide(BigDecimal(paymentDates.size), DECIMAL_SCALE, RoundingMode.HALF_UP)
+        val params =
+            ScheduleCalculationParams(
+                startDate = startDate,
+                remainingAmount = remainingAmount,
+                paymentDay = paymentDay,
+                targetDate = targetDate,
+            )
+        return dividedByPeriodPolicy.calculateMonthlyAmount(params)
     }
 
     /**
-     * 납부 스케줄 정보
+     * 상환 타입에 따라 적절한 정책을 반환
      */
-    data class PaymentSchedule(
-        val scheduledDate: LocalDate,
-        val scheduledAmount: BigDecimal,
-    )
-
-    /**
-     * 완료일 정보
-     */
-    data class CompletionDateInfo(
-        val completionDate: LocalDate,
-        val monthsLater: Int,
-    )
+    fun getPolicyForType(repaymentType: RepaymentType): RepaymentAmountPolicy {
+        return when (repaymentType) {
+            RepaymentType.DIVIDED_BY_PERIOD -> dividedByPeriodPolicy
+            RepaymentType.FIXED_MONTHLY -> fixedMonthlyPolicy
+            RepaymentType.FLEXIBLE -> flexiblePolicy
+        }
+    }
 }

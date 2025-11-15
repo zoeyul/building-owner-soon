@@ -18,6 +18,10 @@ class RepaymentScheduleService(
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
     private val transactionRepository: TransactionRepository,
 ) {
+    companion object {
+        private const val ROUNDING_UNIT = 100 // 100원 단위 절삭을 위한 상수
+    }
+
     suspend fun getRepaymentManagement(
         userId: Long,
         transactionId: Long,
@@ -215,21 +219,26 @@ class RepaymentScheduleService(
             return
         }
 
-        val averageAmount =
-            remainingAmount.divide(
-                java.math.BigDecimal(pendingSchedules.size),
-                0,
-                java.math.RoundingMode.DOWN,
+        // 100원 단위 절삭 적용 (DIVIDED_BY_PERIOD와 동일한 로직)
+        // 재계산 시에도 일관된 금액 계산 정책 적용
+        val amountInHundreds = remainingAmount.divide(java.math.BigDecimal(ROUNDING_UNIT)).toBigInteger()
+        val baseInHundreds = amountInHundreds.divide(java.math.BigInteger.valueOf(pendingSchedules.size.toLong()))
+        val baseAmount =
+            java.math.BigDecimal(
+                baseInHundreds.multiply(java.math.BigInteger.valueOf(ROUNDING_UNIT.toLong())),
             )
-        val remainder = remainingAmount - (averageAmount * java.math.BigDecimal(pendingSchedules.size))
+
+        val totalBaseAmount = baseAmount.multiply(java.math.BigDecimal(pendingSchedules.size))
+        val remainder = remainingAmount.subtract(totalBaseAmount)
 
         val updatedSchedules =
             pendingSchedules.mapIndexed { index, schedule ->
                 val newAmount =
                     if (index == pendingSchedules.size - 1) {
-                        averageAmount + remainder
+                        // 마지막 납부는 기본 금액 + 나머지 금액
+                        baseAmount.add(remainder)
                     } else {
-                        averageAmount
+                        baseAmount
                     }
 
                 schedule.copy(

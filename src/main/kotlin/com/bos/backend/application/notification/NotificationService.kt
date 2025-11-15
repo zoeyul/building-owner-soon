@@ -1,11 +1,11 @@
 package com.bos.backend.application.notification
 
 import com.bos.backend.application.mapper.NotificationMapper
-import com.bos.backend.application.push.FcmPushService
+import com.bos.backend.application.push.ExpoPushService
 import com.bos.backend.domain.notification.entity.Notification
 import com.bos.backend.domain.notification.enums.NotificationCategory
 import com.bos.backend.domain.notification.repository.NotificationRepository
-import com.bos.backend.domain.push.PushMessage
+import com.bos.backend.domain.push.ExpoPushMessage
 import com.bos.backend.domain.user.repository.UserDeviceRepository
 import com.bos.backend.presentation.notification.dto.MarkAsReadResponseDTO
 import com.bos.backend.presentation.notification.dto.NotificationResponseDTO
@@ -19,7 +19,7 @@ import java.time.Instant
 class NotificationService(
     private val notificationRepository: NotificationRepository,
     private val notificationMapper: NotificationMapper,
-    private val fcmPushService: FcmPushService,
+    private val expoPushService: ExpoPushService,
     private val userDeviceRepository: UserDeviceRepository,
 ) {
     private val logger = LoggerFactory.getLogger(NotificationService::class.java)
@@ -90,7 +90,7 @@ class NotificationService(
         userId: Long,
         title: String,
         content: String,
-        deepLink: String?,
+        @Suppress("UnusedParameter") deepLink: String?,
     ) {
         try {
             val devices = userDeviceRepository.findByUserId(userId).toList()
@@ -100,15 +100,24 @@ class NotificationService(
                 return
             }
 
-            // 플랫폼별 최적화된 메시지 생성
-            val pushMessage =
-                PushMessage.createOptimizedMessage(
-                    title = title,
-                    body = content,
-                    deepLink = deepLink,
-                )
+            // Expo 푸시 메시지 생성
+            val messages =
+                devices.mapNotNull { device ->
+                    device.expoToken?.let { token ->
+                        ExpoPushMessage.createSimple(
+                            token = token,
+                            title = title,
+                            body = content,
+                        )
+                    }
+                }
 
-            val result = fcmPushService.sendToMultipleDevices(devices, pushMessage)
+            if (messages.isEmpty()) {
+                logger.info("푸시 알림 전송 건너뜀: userId=$userId, Expo 토큰이 없음")
+                return
+            }
+
+            val result = expoPushService.sendToMultipleDevices(devices, messages)
 
             logger.info(
                 "푸시 알림 전송 완료: userId=$userId, " +

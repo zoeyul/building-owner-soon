@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.ServerHttpSecurity
+import org.springframework.security.core.userdetails.MapReactiveUserDetailsService
+import org.springframework.security.core.userdetails.User
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.stereotype.Component
 import org.springframework.web.cors.CorsConfiguration
@@ -16,7 +18,19 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 @EnableWebFluxSecurity
 class SecurityConfiguration(
     private val jwtSecurityContextRepository: JwtSecurityContextRepository,
+    private val pushTestProperties: PushTestProperties,
 ) {
+    @Bean
+    fun pushTestUserDetailsService(): MapReactiveUserDetailsService {
+        val user =
+            User
+                .withUsername(pushTestProperties.username)
+                .password("{noop}${pushTestProperties.password}")
+                .roles("PUSH_TEST")
+                .build()
+        return MapReactiveUserDetailsService(user)
+    }
+
     @Bean
     fun securityFilterChain(
         http: ServerHttpSecurity,
@@ -24,7 +38,7 @@ class SecurityConfiguration(
     ): SecurityWebFilterChain =
         http
             .csrf { it.disable() }
-            .httpBasic { it.disable() }
+            .httpBasic { }
             .formLogin { it.disable() }
             .logout { it.disable() }
             .cors { it.configurationSource(corsConfig) }
@@ -39,9 +53,10 @@ class SecurityConfiguration(
                         "/auth/token/refresh",
                         "/api/**",
                         "/actuator/**",
-                        "/admin/**",
+                        "/push/test/**",
                         "/transactions/*/share",
                     ).permitAll()
+                    .pathMatchers("/admin/**").hasRole("PUSH_TEST")
                     .anyExchange()
                     .authenticated()
             }.securityContextRepository(jwtSecurityContextRepository)
@@ -69,4 +84,11 @@ data class CorsProperties(
     var allowedMethods: List<String> = listOf(),
     var allowedHeaders: List<String> = listOf(),
     var allowedOriginPatterns: List<String> = listOf(),
+)
+
+@Component
+@ConfigurationProperties(prefix = "push.test.auth")
+data class PushTestProperties(
+    var username: String = "",
+    var password: String = "",
 )

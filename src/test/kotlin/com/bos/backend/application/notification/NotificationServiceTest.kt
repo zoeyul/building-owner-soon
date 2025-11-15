@@ -1,7 +1,7 @@
 package com.bos.backend.application.notification
 
 import com.bos.backend.application.mapper.NotificationMapper
-import com.bos.backend.application.push.FcmPushService
+import com.bos.backend.application.push.ExpoPushService
 import com.bos.backend.domain.notification.entity.Notification
 import com.bos.backend.domain.notification.enums.NotificationCategory
 import com.bos.backend.domain.notification.repository.NotificationRepository
@@ -16,14 +16,14 @@ import kotlinx.coroutines.flow.flowOf
 
 class NotificationServiceTest : StringSpec({
     val notificationRepository = mockk<NotificationRepository>()
-    val fcmPushService = mockk<FcmPushService>()
+    val expoPushService = mockk<ExpoPushService>()
     val userDeviceRepository = mockk<UserDeviceRepository>()
     val notificationMapper = NotificationMapper.INSTANCE
     val notificationService =
         NotificationService(
             notificationRepository,
             notificationMapper,
-            fcmPushService,
+            expoPushService,
             userDeviceRepository,
         )
 

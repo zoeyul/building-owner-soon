@@ -1572,6 +1572,281 @@ paths:
                     example: "요청값이 올바르지 않습니다."
         "500":
           $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/simple:
+    post:
+      tags:
+        - push
+      operationId: testSimplePush
+      summary: "간편 푸시 테스트 - userId만으로 자동 테스트"
+      description: |-
+        userId만 입력하면 자동으로 최신 거래 내역과 다음 상환 스케줄을 조회하여 푸시 전송
+
+        ## 자동 조회 항목
+        - 최신 거래 내역 (createdAt 기준)
+        - 다음 상환 스케줄 (첫 번째 pending 스케줄)
+        - 등록된 모든 디바이스
+
+        ## 발송 템플릿
+        - LEND (빌려준 경우): REPAYMENT_REMINDER_PAYEE
+        - BORROW (빌린 경우): REPAYMENT_REMINDER_PAYER
+
+        ## 응답 정보
+        - 푸시 전송 결과와 함께 사용된 데이터 정보를 반환
+        - 테스트에 사용된 거래, 스케줄, 템플릿 정보 포함
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimplePushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplePushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/repayment-reminder-payer:
+    post:
+      tags:
+        - push
+      operationId: testRepaymentReminderPayer
+      summary: "상환 예정 안내 (갚을 사람) 테스트"
+      description: |-
+        상환 예정일 D-2 오전 9시에 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환일 2일 전 오전 9시 발송
+        - 예정된 회차 존재
+        - 상환 완료 시 발송 안 됨
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentPushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/repayment-reminder-payee:
+    post:
+      tags:
+        - push
+      operationId: testRepaymentReminderPayee
+      summary: "상환 예정 안내 (받을 사람) 테스트"
+      description: |-
+        상환 예정일 D-2 오전 9시에 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환일 2일 전 오전 9시 발송
+        - 예정된 회차 존재
+        - 상환 완료 시 발송 안 됨
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentPushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/repayment-today-payer:
+    post:
+      tags:
+        - push
+      operationId: testRepaymentTodayPayer
+      summary: "상환일 당일 안내 (갚을 사람) 테스트"
+      description: |-
+        상환일 당일 오전 9시에 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환일 당일 오전 9시 발송
+        - 예정된 회차 존재 + 해당 회차 미완료
+        - 당일 0시~발송 시점 사이 상환 완료 시 발송 안 됨
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentPushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/repayment-today-payee:
+    post:
+      tags:
+        - push
+      operationId: testRepaymentTodayPayee
+      summary: "상환일 당일 안내 (받을 사람) 테스트"
+      description: |-
+        상환일 당일 오전 9시에 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환일 당일 오전 9시 발송
+        - 예정된 회차 존재 + 해당 회차 미완료
+        - 당일 0시~발송 시점 사이 상환 완료 시 발송 안 됨
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentPushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/repayment-overdue-payer:
+    post:
+      tags:
+        - push
+      operationId: testRepaymentOverduePayer
+      summary: "상환 지연 경고 (갚을 사람) 테스트"
+      description: |-
+        상환일 익일 오전 9시에 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환일 익일 오전 9시 발송
+        - 예정된 회차 존재 + 해당 회차 미완료
+        - 상환일 당일 23:59까지 완료 시 발송 안 됨
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentOverduePushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/repayment-overdue-payee:
+    post:
+      tags:
+        - push
+      operationId: testRepaymentOverduePayee
+      summary: "상환 지연 경고 (받을 사람) 테스트"
+      description: |-
+        상환일 익일 오전 9시에 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환일 익일 오전 9시 발송
+        - 예정된 회차 존재 + 해당 회차 미완료
+        - 상환일 당일 23:59까지 완료 시 발송 안 됨
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentOverduePushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/partial-repayment-complete:
+    post:
+      tags:
+        - push
+      operationId: testPartialRepaymentComplete
+      summary: "부분 상환 완료 안내 테스트"
+      description: |-
+        상환 1회 완료 시 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 상환 1회 완료 시 즉시 발송
+        - 진행률 N% → N% 변경
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartialRepaymentCompletePushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /push/test/transaction-complete:
+    post:
+      tags:
+        - push
+      operationId: testTransactionComplete
+      summary: "거래 내역 최종 완료 안내 테스트"
+      description: |-
+        해당 거래 내역 100% 완료 시 발송되는 푸시 알림 템플릿 테스트
+
+        ## 발송 조건
+        - 전체 금액 상환 완료 시 즉시 발송
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionCompletePushTestRequest"
+      responses:
+        "200":
+          description: 푸시 전송 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushTestResponse"
+        "400":
+          description: 잘못된 요청
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
 components:
   securitySchemes:
     BearerAuth:
@@ -3359,3 +3634,267 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/CommonSignResponseBody"
+    SimplePushTestRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 푸시를 받을 사용자 ID (최신 거래 내역과 스케줄 자동 조회)
+          example: 1
+    SimplePushTestResponse:
+      type: object
+      required:
+        - success
+        - message
+        - sentCount
+      properties:
+        success:
+          type: boolean
+          description: 푸시 전송 성공 여부
+          example: true
+        message:
+          type: string
+          description: 전송 결과 메시지
+          example: "푸시 전송 완료: 성공 2건, 실패 0건"
+        sentCount:
+          type: integer
+          description: 성공적으로 전송된 건수
+          example: 2
+        usedData:
+          $ref: "#/components/schemas/UsedTestData"
+        error:
+          type: string
+          nullable: true
+          description: 오류 메시지 (실패 시)
+          example: null
+    UsedTestData:
+      type: object
+      required:
+        - userId
+        - nickname
+        - transactionId
+        - transactionType
+        - counterpartName
+        - totalAmount
+        - scheduleId
+        - scheduledDate
+        - scheduledAmount
+        - templateUsed
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 사용자 ID
+          example: 1
+        nickname:
+          type: string
+          description: 사용자 닉네임
+          example: "철수"
+        transactionId:
+          type: integer
+          format: int64
+          description: 사용된 거래 ID
+          example: 123
+        transactionType:
+          type: string
+          description: 거래 타입
+          enum: [LEND, BORROW]
+          example: "LEND"
+        counterpartName:
+          type: string
+          description: 상대방 이름
+          example: "영희"
+        totalAmount:
+          type: number
+          description: 총 거래 금액
+          example: 100000
+        scheduleId:
+          type: integer
+          format: int64
+          description: 사용된 스케줄 ID
+          example: 456
+        scheduledDate:
+          type: string
+          format: date
+          description: 상환 예정일
+          example: "2025-01-20"
+        scheduledAmount:
+          type: number
+          description: 상환 예정 금액
+          example: 50000
+        templateUsed:
+          type: string
+          description: 사용된 푸시 템플릿
+          enum:
+            - REPAYMENT_REMINDER_PAYER
+            - REPAYMENT_REMINDER_PAYEE
+          example: "REPAYMENT_REMINDER_PAYEE"
+    RepaymentPushTestRequest:
+      type: object
+      required:
+        - userId
+        - nickname
+        - partnerName
+        - amount
+        - transactionId
+        - scheduleId
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 푸시를 받을 사용자 ID
+          example: 1
+        nickname:
+          type: string
+          description: 사용자 닉네임
+          example: "철수"
+        partnerName:
+          type: string
+          description: 거래 상대방 이름
+          example: "영희"
+        amount:
+          type: integer
+          format: int64
+          description: 상환 금액
+          example: 50000
+        transactionId:
+          type: integer
+          format: int64
+          description: 거래 ID
+          example: 62
+        scheduleId:
+          type: integer
+          format: int64
+          description: 상환 스케줄 ID
+          example: 225
+    RepaymentOverduePushTestRequest:
+      type: object
+      required:
+        - userId
+        - nickname
+        - amount
+        - transactionId
+        - scheduleId
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 푸시를 받을 사용자 ID
+          example: 1
+        nickname:
+          type: string
+          description: 사용자 닉네임
+          example: "철수"
+        amount:
+          type: integer
+          format: int64
+          description: 상환 금액
+          example: 50000
+        transactionId:
+          type: integer
+          format: int64
+          description: 거래 ID
+          example: 62
+        scheduleId:
+          type: integer
+          format: int64
+          description: 상환 스케줄 ID
+          example: 225
+    PartialRepaymentCompletePushTestRequest:
+      type: object
+      required:
+        - userId
+        - nickname
+        - partnerName
+        - amount
+        - progress
+        - transactionId
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 푸시를 받을 사용자 ID
+          example: 1
+        nickname:
+          type: string
+          description: 사용자 닉네임
+          example: "철수"
+        partnerName:
+          type: string
+          description: 거래 상대방 이름
+          example: "영희"
+        amount:
+          type: integer
+          format: int64
+          description: 상환 금액
+          example: 50000
+        progress:
+          type: integer
+          description: 변경된 진행률 (%)
+          example: 50
+        transactionId:
+          type: integer
+          format: int64
+          description: 거래 ID
+          example: 62
+    TransactionCompletePushTestRequest:
+      type: object
+      required:
+        - userId
+        - nickname
+        - partnerName
+        - transactionId
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 푸시를 받을 사용자 ID
+          example: 1
+        nickname:
+          type: string
+          description: 사용자 닉네임
+          example: "철수"
+        partnerName:
+          type: string
+          description: 거래 상대방 이름
+          example: "영희"
+        transactionId:
+          type: integer
+          format: int64
+          description: 거래 ID
+          example: 62
+    PushTestResponse:
+      type: object
+      required:
+        - success
+        - message
+        - sentCount
+      properties:
+        success:
+          type: boolean
+          description: 푸시 전송 성공 여부
+          example: true
+        message:
+          type: string
+          description: 전송 결과 메시지
+          example: "푸시 전송 완료: 성공 2건, 실패 0건"
+        sentCount:
+          type: integer
+          description: 성공적으로 전송된 건수
+          example: 2
+        devices:
+          type: array
+          nullable: true
+          description: 전송 대상 디바이스 목록 (현재는 null)
+          items:
+            type: object
+        error:
+          type: object
+          nullable: true
+          description: 에러 정보 (현재는 null)
+          properties:
+            errorMessage:
+              type: string

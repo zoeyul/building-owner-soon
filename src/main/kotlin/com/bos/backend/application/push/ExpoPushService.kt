@@ -33,10 +33,20 @@ data class ExpoPushSendResult(
 )
 
 /**
+ * 푸시 전송 결과
+ */
+data class PushSendResult(
+    val successCount: Int,
+    val failureCount: Int,
+    val deletedTokens: List<String>,
+)
+
+/**
  * Expo Push Notification Service
  * Expo Push Notification API (https://exp.host/--/api/v2/push/send)를 사용한 푸시 알림 서비스
  */
 @Service
+@Suppress("TooManyFunctions")
 class ExpoPushService(
     private val webClient: WebClient,
     private val userDeviceRepository: UserDeviceRepository,
@@ -46,7 +56,7 @@ class ExpoPushService(
     companion object {
         private const val EXPO_PUSH_API_URL = "https://exp.host/--/api/v2/push/send"
         private const val EXPO_TOKEN_PREFIX = "ExponentPushToken["
-        private const val MIN_TOKEN_LENGTH = 25
+        private const val MIN_VALID_TOKEN_LENGTH = 10
     }
 
     /**
@@ -76,7 +86,8 @@ class ExpoPushService(
         }
 
         return try {
-            val request = ExpoPushRequest.from(message.copy(to = token))
+            val formattedToken = formatExpoToken(token)
+            val request = ExpoPushRequest.from(message.copy(to = formattedToken))
             val rawResponse = sendPushRequest(request)
 
             val response = ObjectMapper().readValue(rawResponse, ExpoPushResponse::class.java)
@@ -128,7 +139,7 @@ class ExpoPushService(
     @Suppress("LongMethod", "NestedBlockDepth")
     suspend fun sendToMultipleDevices(
         devices: List<UserDevice>,
-        message: ExpoPushMessage,
+        messages: List<ExpoPushMessage>,
     ): PushSendResult {
         if (devices.isEmpty()) {
             logger.warn("Expo 전송: 디바이스 리스트가 비어있음")
@@ -139,12 +150,12 @@ class ExpoPushService(
         var failureCount = 0
         val invalidTokens = mutableListOf<String>()
 
-        devices.forEach { device ->
+        devices.zip(messages).forEach { (device, message) ->
             val result = processDevicePush(device, message)
             when {
                 result.isSuccess -> successCount++
                 result.isInvalidToken -> {
-                    invalidTokens.add(device.fcmToken)
+                    device.expoToken?.let { invalidTokens.add(it) }
                     failureCount++
                 }
                 else -> failureCount++
@@ -173,15 +184,16 @@ class ExpoPushService(
         device: UserDevice,
         message: ExpoPushMessage,
     ): DevicePushResult {
-        val token = device.fcmToken
+        val token = device.expoToken
 
-        if (!isValidExpoToken(token)) {
+        if (token == null || !isValidExpoToken(token)) {
             logger.warn("유효하지 않은 Expo 토큰 형식: userId=${device.userId}, token=$token")
             return DevicePushResult(isSuccess = false, isInvalidToken = true)
         }
 
         return try {
-            val request = ExpoPushRequest.from(message.copy(to = token))
+            val formattedToken = formatExpoToken(token)
+            val request = ExpoPushRequest.from(message.copy(to = formattedToken))
             val rawResponse = sendPushRequest(request)
 
             val response = ObjectMapper().readValue(rawResponse, ExpoPushResponse::class.java)
@@ -229,13 +241,14 @@ class ExpoPushService(
 
     /**
      * Expo Push API 호출
+     * Expo API는 배열로 전송해야 일관된 배열 응답을 받음
      */
     private suspend fun sendPushRequest(request: ExpoPushRequest): String {
         return webClient
             .post()
             .uri(EXPO_PUSH_API_URL)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(request)
+            .bodyValue(listOf(request))
             .retrieve()
             .bodyToMono(String::class.java)
             .awaitSingle()
@@ -243,10 +256,22 @@ class ExpoPushService(
 
     /**
      * Expo Push Token 유효성 검사
-     * 형식: ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]
+     * DB에 저장된 토큰 스트링이 비어있지 않으면 유효한 것으로 간주
      */
     private fun isValidExpoToken(token: String): Boolean {
-        return token.startsWith(EXPO_TOKEN_PREFIX) && token.endsWith("]") && token.length > MIN_TOKEN_LENGTH
+        return token.isNotBlank() && token.length > MIN_VALID_TOKEN_LENGTH
+    }
+
+    /**
+     * DB에 저장된 토큰 스트링을 ExponentPushToken 형식으로 변환
+     * 이미 ExponentPushToken[] 형식이면 그대로 반환, 아니면 감싸서 반환
+     */
+    private fun formatExpoToken(token: String): String {
+        return if (token.startsWith(EXPO_TOKEN_PREFIX) && token.endsWith("]")) {
+            token
+        } else {
+            "$EXPO_TOKEN_PREFIX$token]"
+        }
     }
 
     /**
@@ -292,7 +317,7 @@ class ExpoPushService(
     private suspend fun deleteInvalidTokens(tokens: List<String>) {
         tokens.forEach { token ->
             try {
-                val deletedCount = userDeviceRepository.deleteByFcmToken(token)
+                val deletedCount = userDeviceRepository.deleteByExpoToken(token)
                 if (deletedCount > 0) {
                     logger.info("유효하지 않은 Expo 토큰 삭제 완료: token=$token, 삭제된 레코드 수=$deletedCount")
                 }
