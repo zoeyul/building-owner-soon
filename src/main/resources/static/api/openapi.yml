@@ -3555,85 +3555,6 @@ components:
           format: decimal
           description: 상환/수금 예정 금액
           example: 100000
-
-  requestBodies:
-    SignUpRequestSpec:
-      required: true
-      description: |-
-        회원가입 요청 페이로드
-
-        - providerAccessToken: 소셜로그인 제공자로부터 받은 access token 입니다. (KAKAO 등)
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/SignUpRequest"
-    SignInRequestSpec:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/SignInRequest"
-  responses:
-    NotFoundResponseSpec:
-      description: Not Found
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/BaseProblemDetails"
-    BadRequestResponseSpec:
-      description: Bad Request
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/BaseProblemDetails"
-    ConflictResponseSpec:
-      description: Conflict
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/BaseProblemDetails"
-    InternalServerErrorResponseSpec:
-      description: 내부 오류가 생겼습니다. 해당 상황 발생 시, 관리자에게 이야기해주세요.
-      content:
-        application/json:
-          schema:
-            properties:
-              statusCode:
-                type: number
-                example: 500
-              message:
-                type: string
-                example: Internal Server Error
-    SignUpCreatedResponseSpec:
-      description: |-
-        회원가입 완료시 accessToken, refreshToken 발급
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/CommonSignResponseBody"
-    SignInSuccessResponseSpec:
-      description: 로그인 성공
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/CommonSignResponseBody"
-    GetMeResponseSpec:
-      description: |-
-        유효한 액세스토큰으로 조회한 유저 프로필 정보 조회
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/UserProfileResponse"
-    TokenRefreshResponseSpec:
-      description: |-
-        토큰 갱신 성공
-
-        새로운 액세스 토큰과 리프레시 토큰이 발급됩니다.
-        기존 리프레시 토큰은 자동으로 폐기됩니다.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/CommonSignResponseBody"
     SimplePushTestRequest:
       type: object
       required:
@@ -3701,7 +3622,7 @@ components:
         transactionType:
           type: string
           description: 거래 타입
-          enum: [LEND, BORROW]
+          enum: [ LEND, BORROW ]
           example: "LEND"
         counterpartName:
           type: string
@@ -3898,3 +3819,81 @@ components:
           properties:
             errorMessage:
               type: string
+  requestBodies:
+    SignUpRequestSpec:
+      required: true
+      description: |-
+        회원가입 요청 페이로드
+
+        - providerAccessToken: 소셜로그인 제공자로부터 받은 access token 입니다. (KAKAO 등)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SignUpRequest"
+    SignInRequestSpec:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SignInRequest"
+  responses:
+    NotFoundResponseSpec:
+      description: Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/BaseProblemDetails"
+    BadRequestResponseSpec:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/BaseProblemDetails"
+    ConflictResponseSpec:
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/BaseProblemDetails"
+    InternalServerErrorResponseSpec:
+      description: 내부 오류가 생겼습니다. 해당 상황 발생 시, 관리자에게 이야기해주세요.
+      content:
+        application/json:
+          schema:
+            properties:
+              statusCode:
+                type: number
+                example: 500
+              message:
+                type: string
+                example: Internal Server Error
+    SignUpCreatedResponseSpec:
+      description: |-
+        회원가입 완료시 accessToken, refreshToken 발급
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CommonSignResponseBody"
+    SignInSuccessResponseSpec:
+      description: 로그인 성공
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CommonSignResponseBody"
+    GetMeResponseSpec:
+      description: |-
+        유효한 액세스토큰으로 조회한 유저 프로필 정보 조회
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UserProfileResponse"
+    TokenRefreshResponseSpec:
+      description: |-
+        토큰 갱신 성공
+
+        새로운 액세스 토큰과 리프레시 토큰이 발급됩니다.
+        기존 리프레시 토큰은 자동으로 폐기됩니다.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CommonSignResponseBody"
