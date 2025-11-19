@@ -59,6 +59,7 @@ class TransactionService(
         transactionalOperator.executeAndAwait {
             val counterpartCharacter =
                 characterBuilder.buildCounterpartCharacter(createTransactionRequestDTO.counterpartCharacter)
+            val initialAmount = createTransactionRequestDTO.completedAmount ?: BigDecimal.ZERO
             val transaction =
                 Transaction(
                     userId = userId,
@@ -69,7 +70,8 @@ class TransactionService(
                     customRelationship = createTransactionRequestDTO.customRelationship,
                     transactionDate = createTransactionRequestDTO.transactionDate,
                     totalAmount = createTransactionRequestDTO.totalAmount,
-                    completedAmount = createTransactionRequestDTO.completedAmount ?: BigDecimal.ZERO,
+                    completedAmount = initialAmount,
+                    initialCompletedAmount = initialAmount,
                     memo = createTransactionRequestDTO.memo,
                     repaymentType = createTransactionRequestDTO.repaymentType,
                     targetDate = createTransactionRequestDTO.targetDate,

@@ -4,6 +4,7 @@ import com.bos.backend.domain.transaction.entity.RepaymentSchedule
 import com.bos.backend.domain.transaction.enum.RepaymentStatus
 import java.time.LocalDate
 
+@Suppress("TooManyFunctions")
 interface RepaymentScheduleRepository {
     suspend fun save(repaymentSchedule: RepaymentSchedule): RepaymentSchedule
 
@@ -34,4 +35,10 @@ interface RepaymentScheduleRepository {
         inProgressStatus: RepaymentStatus = RepaymentStatus.IN_PROGRESS,
         completedStatus: RepaymentStatus = RepaymentStatus.COMPLETED,
     ): Int
+
+    suspend fun findSchedulesForReminder(targetDate: LocalDate): List<RepaymentSchedule>
+
+    suspend fun findSchedulesForToday(today: LocalDate): List<RepaymentSchedule>
+
+    suspend fun findOverdueSchedules(): List<RepaymentSchedule>
 }

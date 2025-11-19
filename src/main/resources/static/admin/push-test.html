@@ -601,6 +601,38 @@
             event.preventDefault();
 
             const form = event.target;
+
+            // 현재 활성화된 탭 찾기
+            const activeTab = document.querySelector('.tab-content.active');
+            const tabId = activeTab ? activeTab.id : null;
+
+            // 드롭다운 선택 검증
+            if (tabId && selectionFlags[tabId]) {
+                const flags = selectionFlags[tabId];
+
+                // 부분 상환 완료, 거래 완료를 제외한 타입들은 거래와 스케줄 모두 선택 필요
+                const needsSchedule = ['reminder-payer', 'reminder-payee', 'today-payer', 'today-payee', 'overdue-payer', 'overdue-payee'].includes(tabId);
+                const needsOnlyTransaction = ['partial-complete', 'transaction-complete'].includes(tabId);
+
+                if (needsSchedule) {
+                    // 거래와 스케줄 모두 필요
+                    if (!flags.transactionSelected) {
+                        alert('드롭다운에서 거래를 선택해주세요.\n상환 금액과 스케줄 ID를 정확히 입력하기 위해 드롭다운 선택이 필요합니다.');
+                        return;
+                    }
+                    if (!flags.scheduleSelected) {
+                        alert('드롭다운에서 스케줄을 선택해주세요.\n상환 금액과 스케줄 ID를 정확히 입력하기 위해 드롭다운 선택이 필요합니다.');
+                        return;
+                    }
+                } else if (needsOnlyTransaction) {
+                    // 거래만 필요
+                    if (!flags.transactionSelected) {
+                        alert('드롭다운에서 거래를 선택해주세요.');
+                        return;
+                    }
+                }
+            }
+
             const formData = new FormData(form);
             const data = {};
 
@@ -742,6 +774,18 @@
         // ===== 데이터 조회 기능 =====
         let lookupDataCache = {}; // 조회한 데이터 캐시
 
+        // 선택 추적 플래그 - 각 탭별로 거래와 스케줄 선택 여부 추적
+        let selectionFlags = {
+            'reminder-payer': { transactionSelected: false, scheduleSelected: false },
+            'reminder-payee': { transactionSelected: false, scheduleSelected: false },
+            'today-payer': { transactionSelected: false, scheduleSelected: false },
+            'today-payee': { transactionSelected: false, scheduleSelected: false },
+            'overdue-payer': { transactionSelected: false, scheduleSelected: false },
+            'overdue-payee': { transactionSelected: false, scheduleSelected: false },
+            'partial-complete': { transactionSelected: false, scheduleSelected: false },
+            'transaction-complete': { transactionSelected: false, scheduleSelected: false }
+        };
+
         // 데이터 조회
         async function lookupData(event, tabId, transactionType) {
             event.preventDefault();
@@ -801,10 +845,23 @@
             const select = document.getElementById(`transaction-select-${tabId}`);
             const selectedValue = select.value;
 
-            if (!selectedValue) return;
+            if (!selectedValue) {
+                // 선택 해제 시 플래그 초기화
+                if (selectionFlags[tabId]) {
+                    selectionFlags[tabId].transactionSelected = false;
+                    selectionFlags[tabId].scheduleSelected = false;
+                }
+                return;
+            }
 
             const transaction = JSON.parse(selectedValue);
             const data = lookupDataCache[tabId];
+
+            // 거래 선택 플래그 설정
+            if (selectionFlags[tabId]) {
+                selectionFlags[tabId].transactionSelected = true;
+                selectionFlags[tabId].scheduleSelected = false; // 거래 변경 시 스케줄 선택 초기화
+            }
 
             // 폼 필드 자동 채우기
             document.getElementById(`userId-${tabId}`).value = data.userId;
@@ -862,9 +919,20 @@
             const select = document.getElementById(`schedule-select-${tabId}`);
             const selectedValue = select.value;
 
-            if (!selectedValue) return;
+            if (!selectedValue) {
+                // 선택 해제 시 플래그 초기화
+                if (selectionFlags[tabId]) {
+                    selectionFlags[tabId].scheduleSelected = false;
+                }
+                return;
+            }
 
             const schedule = JSON.parse(selectedValue);
+
+            // 스케줄 선택 플래그 설정
+            if (selectionFlags[tabId]) {
+                selectionFlags[tabId].scheduleSelected = true;
+            }
 
             // 폼 필드 자동 채우기
             document.getElementById(`scheduleId-${tabId}`).value = schedule.scheduleId;

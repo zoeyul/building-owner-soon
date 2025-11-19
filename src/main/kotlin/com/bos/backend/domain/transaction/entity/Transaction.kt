@@ -33,6 +33,8 @@ data class Transaction(
     val totalAmount: BigDecimal,
     @Column("completed_amount")
     val completedAmount: BigDecimal = BigDecimal.ZERO,
+    @Column("initial_completed_amount")
+    val initialCompletedAmount: BigDecimal = BigDecimal.ZERO,
     val memo: String?,
     @Column("repayment_type")
     val repaymentType: RepaymentType,

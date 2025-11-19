@@ -71,4 +71,33 @@ interface R2dbcRepaymentScheduleRepository :
         inProgressStatus: RepaymentStatus,
         completedStatus: RepaymentStatus,
     ): Int
+
+    @Query(
+        """
+        SELECT * FROM repayment_schedules
+        WHERE scheduled_date = :targetDate
+        AND status IN ('SCHEDULED', 'IN_PROGRESS')
+        ORDER BY scheduled_date ASC
+        """,
+    )
+    override suspend fun findSchedulesForReminder(targetDate: LocalDate): List<RepaymentSchedule>
+
+    @Query(
+        """
+        SELECT * FROM repayment_schedules
+        WHERE scheduled_date = :today
+        AND status = 'IN_PROGRESS'
+        ORDER BY scheduled_date ASC
+        """,
+    )
+    override suspend fun findSchedulesForToday(today: LocalDate): List<RepaymentSchedule>
+
+    @Query(
+        """
+        SELECT * FROM repayment_schedules
+        WHERE status = 'OVERDUE'
+        ORDER BY scheduled_date ASC
+        """,
+    )
+    override suspend fun findOverdueSchedules(): List<RepaymentSchedule>
 }

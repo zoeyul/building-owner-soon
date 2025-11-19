@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.LocalDate
+import java.time.ZoneId
 
 @Service
 class RepaymentScheduleBatchService(
@@ -14,7 +15,7 @@ class RepaymentScheduleBatchService(
 ) {
     private val logger = LoggerFactory.getLogger(RepaymentScheduleBatchService::class.java)
 
-    @Scheduled(cron = "5 0 0 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "1 0 0 * * *", zone = "Asia/Seoul")
     fun updateRepaymentStatuses() {
         runBlocking {
             executeUpdateRepaymentStatuses()
@@ -25,7 +26,7 @@ class RepaymentScheduleBatchService(
         return try {
             logger.info("Starting repayment schedule status update batch job")
 
-            val today = LocalDate.now()
+            val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val twoDaysLater = today.plusDays(2)
 
             // IN_PROGRESS: 상환일이 오늘부터 2일 후까지 (D-Day ~ D-2)
