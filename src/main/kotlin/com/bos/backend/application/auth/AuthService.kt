@@ -182,6 +182,11 @@ class AuthService(
         if (user == null || user.isDeleted()) {
             throw CustomException(AuthErrorCode.USER_NOT_FOUND)
         }
+
+        // user_auth 테이블에서 하드 삭제
+        userAuthRepository.deleteByUserId(userId)
+
+        // user 테이블에서 소프트 삭제 (deleted_at 설정)
         userRepository.deleteById(userId)
     }
 

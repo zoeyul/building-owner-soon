@@ -53,6 +53,12 @@ interface UserAuthCoroutineRepository : CoroutineCrudRepository<UserAuth, Long> 
         @Param("userId") userId: Long,
         @Param("newPassword") newPassword: String,
     ): Int
+
+    @Modifying
+    @Query("DELETE FROM user_auths WHERE user_id = :userId")
+    suspend fun deleteByUserId(
+        @Param("userId") userId: Long,
+    ): Int
 }
 
 @Repository
@@ -96,5 +102,9 @@ class R2dbcUserAuthRepositoryImpl(
         newPassword: String,
     ) {
         coroutineRepository.updatePassword(userId, newPassword)
+    }
+
+    override suspend fun deleteByUserId(userId: Long) {
+        coroutineRepository.deleteByUserId(userId)
     }
 }

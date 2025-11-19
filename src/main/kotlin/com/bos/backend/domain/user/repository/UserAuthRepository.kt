@@ -35,4 +35,6 @@ interface UserAuthRepository {
         userId: Long,
         newPassword: String,
     )
+
+    suspend fun deleteByUserId(userId: Long)
 }
