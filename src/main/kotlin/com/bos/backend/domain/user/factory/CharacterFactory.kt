@@ -1,6 +1,7 @@
 package com.bos.backend.domain.user.factory
 
 import com.bos.backend.application.service.CharacterAssetService
+import com.bos.backend.domain.profile.constants.SKIN_COLORS
 import com.bos.backend.domain.profile.enums.ProfileAssetType
 import com.bos.backend.domain.user.entity.ProfileCharacter
 
@@ -15,15 +16,11 @@ object CharacterFactory {
         const val HOME = "HOME_TYPE_1"
     }
 
-    object DefaultValues {
-        const val SKIN_COLOR = "#FFFFFF"
-    }
-
     suspend fun createDefaultCharacter(characterAssetService: CharacterAssetService): ProfileCharacter =
         ProfileCharacter(
             face = characterAssetService.createCharacterAsset(DefaultIds.FACE, ProfileAssetType.FACE),
             hand = characterAssetService.createCharacterAsset(DefaultIds.HAND, ProfileAssetType.HAND),
-            skinColor = DefaultValues.SKIN_COLOR,
+            skinColor = SKIN_COLORS.random(),
             bang = characterAssetService.createCharacterAsset(DefaultIds.BANG, ProfileAssetType.BANG),
             backHair = characterAssetService.createCharacterAsset(DefaultIds.BACK_HAIR, ProfileAssetType.BACK_HAIR),
             eyes = characterAssetService.createCharacterAsset(DefaultIds.EYES, ProfileAssetType.EYES),

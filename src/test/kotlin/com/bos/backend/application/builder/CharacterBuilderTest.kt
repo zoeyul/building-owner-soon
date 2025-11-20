@@ -48,7 +48,6 @@ class CharacterBuilderTest : StringSpec({
         // then
         result.face.id shouldBe CharacterFactory.DefaultIds.FACE
         result.hand.id shouldBe CharacterFactory.DefaultIds.HAND
-        result.skinColor shouldBe CharacterFactory.DefaultValues.SKIN_COLOR
         result.bang.id shouldBe CharacterFactory.DefaultIds.BANG
         result.backHair.id shouldBe CharacterFactory.DefaultIds.BACK_HAIR
         result.eyes.id shouldBe CharacterFactory.DefaultIds.EYES
