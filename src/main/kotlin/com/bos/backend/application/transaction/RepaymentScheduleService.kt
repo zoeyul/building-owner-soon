@@ -40,12 +40,22 @@ class RepaymentScheduleService(
         val overdueRepayments =
             repaymentItems
                 .filter { it.status == RepaymentStatus.OVERDUE }
-                .sortedByDescending { it.displayDate }
+                .sortedBy { it.displayDate }
 
-        val regularRepayments =
+        // 진행중/예정 그룹 (SCHEDULED, IN_PROGRESS) - OVERDUE 제외
+        val inProgressOrScheduled =
             repaymentItems
-                .filter { it.status != RepaymentStatus.OVERDUE }
-                .sortedByDescending { it.displayDate }
+                .filter { it.status in listOf(RepaymentStatus.SCHEDULED, RepaymentStatus.IN_PROGRESS) }
+                .sortedBy { it.displayDate }
+
+        // 완료 그룹 (COMPLETED)
+        val completed =
+            repaymentItems
+                .filter { it.status == RepaymentStatus.COMPLETED }
+                .sortedBy { it.displayDate }
+
+        // 진행중/예정 그룹을 먼저, 그 다음 완료 그룹
+        val regularRepayments = inProgressOrScheduled + completed
 
         return RepaymentManagementResponseDTO(
             overdueRepayments = overdueRepayments,
