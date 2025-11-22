@@ -21,6 +21,8 @@ data class UserDevice(
     val platform: Platform? = null,
     @Column("device_name")
     val deviceName: String? = null,
+    @Column("is_active")
+    val isActive: Boolean = true,
     @Column("created_at")
     val createdAt: Instant = Instant.now(),
     @Column("updated_at")

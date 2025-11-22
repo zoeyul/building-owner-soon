@@ -441,6 +441,71 @@ paths:
                     message: "리프레시 토큰이 폐기되었습니다."
         "500":
           $ref: "#/components/responses/InternalServerErrorResponseSpec"
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      operationId: logout
+      summary: "로그아웃"
+      description: |-
+        사용자를 로그아웃 처리합니다.
+
+        ## 처리 내용
+        - deviceId가 **있으면**: 해당 디바이스의 refresh token만 폐기하고 디바이스를 비활성화합니다
+        - deviceId가 **없으면**: 모든 refresh token을 폐기하고 모든 디바이스를 비활성화합니다
+
+        ## 보안
+        - Bearer 토큰 인증이 필요합니다
+        - 로그아웃 후 폐기된 refresh token은 재사용할 수 없습니다
+
+        ## 요청 파라미터
+        - deviceId: 로그아웃할 디바이스의 고유 ID (선택사항)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: |-
+            로그아웃 성공
+
+            Refresh token이 폐기되고 디바이스가 비활성화되었습니다.
+        "401":
+          description: |-
+            인증 실패
+
+            **에러 케이스:**
+            - `INVALID_TOKEN`: 유효하지 않은 액세스 토큰입니다
+            - `EXPIRED_TOKEN`: 액세스 토큰이 만료되었습니다
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: string
+                    enum:
+                      - INVALID_TOKEN
+                      - EXPIRED_TOKEN
+                  message:
+                    type: string
+              examples:
+                invalid_token:
+                  summary: 유효하지 않은 토큰
+                  value:
+                    errorCode: "INVALID_TOKEN"
+                    message: "유효하지 않은 토큰입니다."
+                expired_token:
+                  summary: 만료된 토큰
+                  value:
+                    errorCode: "EXPIRED_TOKEN"
+                    message: "토큰이 만료되었습니다."
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponseSpec"
   /users/me:
     get:
       tags:
@@ -3333,6 +3398,17 @@ components:
           type: string
           description: 리프레시 토큰
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    LogoutRequest:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          description: |-
+            디바이스 ID (선택사항)
+            - 값이 있으면: 해당 디바이스만 로그아웃
+            - 값이 없으면: 모든 디바이스 로그아웃
+          example: "device-uuid-12345"
+          nullable: true
     TokenRefreshErrorResponse:
       type: object
       required:

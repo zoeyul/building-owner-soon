@@ -14,5 +14,7 @@ interface RefreshTokenRepository {
 
     suspend fun revokeByTokenHash(tokenHash: String)
 
+    suspend fun revokeByUserDeviceId(userDeviceId: Long)
+
     suspend fun deleteExpiredTokens(now: Instant = Instant.now())
 }

@@ -21,4 +21,11 @@ interface UserDeviceRepository {
     suspend fun deleteByFcmToken(fcmToken: String): Long
 
     suspend fun deleteByExpoToken(expoToken: String): Long
+
+    suspend fun deactivateByUserId(userId: Long)
+
+    suspend fun deactivateByUserIdAndDeviceId(
+        userId: Long,
+        deviceId: String,
+    )
 }

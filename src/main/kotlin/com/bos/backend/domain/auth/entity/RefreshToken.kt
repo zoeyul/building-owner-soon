@@ -11,6 +11,8 @@ data class RefreshToken(
     val id: Long? = null,
     @Column("user_id")
     val userId: Long,
+    @Column("user_device_id")
+    val userDeviceId: Long? = null,
     @Column("token_hash")
     val tokenHash: String,
     @Column("expires_at")

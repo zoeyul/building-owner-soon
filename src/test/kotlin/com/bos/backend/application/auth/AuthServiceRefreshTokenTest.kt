@@ -30,6 +30,7 @@ class AuthServiceRefreshTokenTest : StringSpec({
             refreshTokenRepository = refreshTokenRepository,
             accessTokenExpiration = accessTokenExpiration,
             refreshTokenExpiration = refreshTokenExpiration,
+            userDeviceRepository = mockk(),
         )
 
     "refreshToken은 유효한 토큰으로 새로운 토큰을 발급한다" {

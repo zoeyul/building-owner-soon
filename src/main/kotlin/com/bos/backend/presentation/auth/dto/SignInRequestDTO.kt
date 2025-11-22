@@ -10,4 +10,5 @@ data class SignInRequestDTO(
     val providerId: String? = null,
     val password: String? = null,
     val providerAccessToken: String? = null,
+    val deviceId: String? = null,
 )

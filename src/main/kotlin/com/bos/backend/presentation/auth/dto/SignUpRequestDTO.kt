@@ -13,4 +13,5 @@ data class SignUpRequestDTO(
     val password: String? = null,
     val providerAccessToken: String? = null,
     val termsAgreements: List<TermAgreementItemDTO>,
+    val deviceId: String? = null,
 )

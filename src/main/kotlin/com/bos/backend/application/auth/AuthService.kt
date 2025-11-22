@@ -12,6 +12,7 @@ import com.bos.backend.domain.term.entity.UserTermAgreement
 import com.bos.backend.domain.term.repository.UserTermAgreementRepository
 import com.bos.backend.domain.user.enum.ProviderType
 import com.bos.backend.domain.user.repository.UserAuthRepository
+import com.bos.backend.domain.user.repository.UserDeviceRepository
 import com.bos.backend.domain.user.repository.UserRepository
 import com.bos.backend.infrastructure.util.PasswordPolicy
 import com.bos.backend.presentation.auth.dto.CheckEmailResponse
@@ -39,6 +40,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val emailVerificationService: EmailVerificationService,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val userDeviceRepository: UserDeviceRepository,
     @Value("\${application.jwt.access-token-expiration}") private val accessTokenExpiration: Long,
     @Value("\${application.jwt.refresh-token-expiration}") private val refreshTokenExpiration: Long,
 ) {
@@ -62,8 +64,12 @@ class AuthService(
         val accessToken = jwtService.generateToken(authResult.user.id.toString(), accessTokenExpiration)
         val refreshToken = jwtService.generateToken(authResult.user.id.toString(), refreshTokenExpiration)
 
-        // RefreshToken 저장
-        saveRefreshToken(authResult.user.id!!, refreshToken)
+        // UserDevice 조회하여 RefreshToken 저장
+        val userDeviceId =
+            request.deviceId?.let {
+                userDeviceRepository.findByUserIdAndDeviceId(authResult.user.id!!, it)?.id
+            }
+        saveRefreshToken(authResult.user.id!!, refreshToken, userDeviceId)
 
         return CommonSignResponseDTO(accessToken, refreshToken)
     }
@@ -79,8 +85,12 @@ class AuthService(
         val accessToken = jwtService.generateToken(authResult.user.id.toString(), accessTokenExpiration)
         val refreshToken = jwtService.generateToken(authResult.user.id.toString(), refreshTokenExpiration)
 
-        // RefreshToken 저장
-        saveRefreshToken(authResult.user.id!!, refreshToken)
+        // UserDevice 조회하여 RefreshToken 저장
+        val userDeviceId =
+            request.deviceId?.let {
+                userDeviceRepository.findByUserIdAndDeviceId(authResult.user.id!!, it)?.id
+            }
+        saveRefreshToken(authResult.user.id!!, refreshToken, userDeviceId)
 
         return CommonSignResponseDTO(accessToken, refreshToken)
     }
@@ -222,9 +232,32 @@ class AuthService(
         return CommonSignResponseDTO(newAccessToken, newRefreshToken)
     }
 
+    suspend fun logout(
+        userId: Long,
+        deviceId: String?,
+    ) {
+        if (deviceId != null) {
+            // 특정 디바이스만 로그아웃
+            val userDevice =
+                userDeviceRepository.findByUserIdAndDeviceId(userId, deviceId)
+                    ?: throw CustomException(AuthErrorCode.USER_NOT_FOUND)
+
+            // 해당 디바이스의 refresh token만 폐기
+            refreshTokenRepository.revokeByUserDeviceId(userDevice.id!!)
+
+            // 디바이스 비활성화
+            userDeviceRepository.deactivateByUserIdAndDeviceId(userId, deviceId)
+        } else {
+            // 모든 디바이스 로그아웃
+            refreshTokenRepository.revokeByUserId(userId)
+            userDeviceRepository.deactivateByUserId(userId)
+        }
+    }
+
     private suspend fun saveRefreshToken(
         userId: Long,
         refreshToken: String,
+        userDeviceId: Long? = null,
     ) {
         val tokenHash = jwtService.hashToken(refreshToken)
         val expiresAt = Instant.now().plusSeconds(refreshTokenExpiration)
@@ -232,6 +265,7 @@ class AuthService(
         refreshTokenRepository.save(
             RefreshToken(
                 userId = userId,
+                userDeviceId = userDeviceId,
                 tokenHash = tokenHash,
                 expiresAt = expiresAt,
             ),

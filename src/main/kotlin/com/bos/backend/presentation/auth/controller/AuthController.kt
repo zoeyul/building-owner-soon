@@ -5,6 +5,7 @@ import com.bos.backend.presentation.auth.dto.CheckEmailResponse
 import com.bos.backend.presentation.auth.dto.CommonSignResponseDTO
 import com.bos.backend.presentation.auth.dto.EmailVerificationCheckDTO
 import com.bos.backend.presentation.auth.dto.EmailVerificationRequestDTO
+import com.bos.backend.presentation.auth.dto.LogoutRequestDTO
 import com.bos.backend.presentation.auth.dto.PasswordResetRequestDTO
 import com.bos.backend.presentation.auth.dto.SignInRequestDTO
 import com.bos.backend.presentation.auth.dto.SignUpRequestDTO
@@ -77,4 +78,11 @@ class AuthController(
     suspend fun refreshToken(
         @Valid @RequestBody request: TokenRefreshRequestDTO,
     ): CommonSignResponseDTO = authService.refreshToken(request)
+
+    @PostMapping("/auth/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    suspend fun logout(
+        @AuthenticationPrincipal userId: String,
+        @RequestBody request: LogoutRequestDTO,
+    ) = authService.logout(userId.toLong(), request.deviceId)
 }

@@ -28,6 +28,15 @@ interface RefreshTokenCoroutineRepository : CoroutineCrudRepository<RefreshToken
     )
 
     @Modifying
+    @Query(
+        "UPDATE refresh_tokens SET revoked_at = :revokedAt WHERE user_device_id = :userDeviceId AND revoked_at IS NULL",
+    )
+    suspend fun revokeByUserDeviceId(
+        userDeviceId: Long,
+        revokedAt: Instant = Instant.now(),
+    )
+
+    @Modifying
     @Query("DELETE FROM refresh_tokens WHERE expires_at < :now OR revoked_at IS NOT NULL")
     suspend fun deleteExpiredTokens(now: Instant): Long
 }
@@ -49,6 +58,10 @@ class R2dbcRefreshTokenRepository(
 
     override suspend fun revokeByTokenHash(tokenHash: String) {
         coroutineRepository.revokeByTokenHash(tokenHash)
+    }
+
+    override suspend fun revokeByUserDeviceId(userDeviceId: Long) {
+        coroutineRepository.revokeByUserDeviceId(userDeviceId)
     }
 
     // TODO: for admin
