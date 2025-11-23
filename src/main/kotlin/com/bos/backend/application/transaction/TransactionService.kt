@@ -28,11 +28,12 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Service
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class TransactionService(
     private val transactionRepository: TransactionRepository,
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
     private val userService: UserService,
+    private val counterpartService: com.bos.backend.application.counterpart.CounterpartService,
     private val transactionalOperator: TransactionalOperator,
     private val characterBuilder: com.bos.backend.application.builder.CharacterBuilder,
     private val repaymentScheduleCalculator: RepaymentScheduleCalculator,
@@ -59,10 +60,20 @@ class TransactionService(
         transactionalOperator.executeAndAwait {
             val counterpartCharacter =
                 characterBuilder.buildCounterpartCharacter(createTransactionRequestDTO.counterpartCharacter)
+
+            // Create counterpart (stored in separate table)
+            val counterpart =
+                counterpartService.createCounterpart(
+                    userId = userId,
+                    name = createTransactionRequestDTO.counterpartName,
+                    character = counterpartCharacter,
+                )
+
             val initialAmount = createTransactionRequestDTO.completedAmount ?: BigDecimal.ZERO
             val transaction =
                 Transaction(
                     userId = userId,
+                    counterpartId = counterpart.id,
                     transactionType = createTransactionRequestDTO.transactionType,
                     counterpartName = createTransactionRequestDTO.counterpartName,
                     counterpartCharacter = counterpartCharacter,
@@ -109,10 +120,11 @@ class TransactionService(
     suspend fun getTransactionForShare(uuid: String): TransactionDetailResponseDTO {
         val transaction = getTransactionByUuid(uuid)
         val userProfile = userService.getUserProfile(transaction.userId)
-        val repaymentSchedules = repaymentScheduleRepository.findByTransactionId(transaction.id!!)
+        val transactionId = transaction.id!!
+        val repaymentSchedules = repaymentScheduleRepository.findByTransactionId(transactionId)
         val sortedSchedules = sortRepaymentSchedules(repaymentSchedules)
         val (borrower, lender) = determineBorrowerAndLender(transaction, userProfile)
-        val calculatedMonthlyAmount = calculateMonthlyAmount(transaction, transaction.id!!)
+        val calculatedMonthlyAmount = calculateMonthlyAmount(transaction, transactionId)
 
         val profileCharacter = userProfile.character ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
         val character =
@@ -238,8 +250,28 @@ class TransactionService(
 
             val counterpartCharacter =
                 characterBuilder.buildCounterpartCharacter(updateTransactionRequestDTO.counterpartCharacter)
+
+            // Check if counterpart name or character has changed
+            val counterpartId =
+                if (updateTransactionRequestDTO.counterpartName != existingTransaction.counterpartName ||
+                    counterpartCharacter != existingTransaction.counterpartCharacter
+                ) {
+                    // Create new counterpart with the new name and/or character
+                    val newCounterpart =
+                        counterpartService.createCounterpart(
+                            userId = userId,
+                            name = updateTransactionRequestDTO.counterpartName,
+                            character = counterpartCharacter,
+                        )
+                    newCounterpart.id
+                } else {
+                    // Keep existing counterpart
+                    existingTransaction.counterpartId
+                }
+
             val updatedTransaction =
                 existingTransaction.copy(
+                    counterpartId = counterpartId,
                     counterpartName = updateTransactionRequestDTO.counterpartName,
                     counterpartCharacter = counterpartCharacter,
                     relationship = updateTransactionRequestDTO.relationship,
@@ -376,7 +408,7 @@ class TransactionService(
         val allSchedules = repaymentScheduleRepository.findByTransactionIdIn(transactionIds)
 
         data class CounterpartKey(
-            val name: String,
+            val counterpartId: Long?,
             val relationship: String,
             val customRelationship: String?,
         )
@@ -384,7 +416,7 @@ class TransactionService(
         val groupedTransactions =
             transactions.groupBy {
                 CounterpartKey(
-                    name = it.counterpartName,
+                    counterpartId = it.counterpartId,
                     relationship = it.relationship.name,
                     customRelationship = it.customRelationship,
                 )
@@ -393,7 +425,9 @@ class TransactionService(
         val today = LocalDate.now()
         val twoDaysFromNow = today.plusDays(2)
 
-        return groupedTransactions.map { (key, txList) ->
+        return groupedTransactions.map { (_, txList) ->
+            val firstTx = txList.first()
+
             val lendAmount =
                 txList
                     .filter { it.transactionType == TransactionType.LEND }
@@ -415,15 +449,15 @@ class TransactionService(
             val upcomingInfo = findUpcomingTransactionInfo(txList, allSchedules, today, twoDaysFromNow)
 
             RelationshipSummaryDTO(
-                counterpartName = key.name,
-                counterpartCharacter = txList.first().counterpartCharacter,
-                relationship = txList.first().relationship,
-                customRelationship = key.customRelationship,
+                counterpartName = firstTx.counterpartName,
+                counterpartCharacter = firstTx.counterpartCharacter,
+                relationship = firstTx.relationship,
+                customRelationship = firstTx.customRelationship,
                 transactionType = transactionType,
                 totalAmount = totalAmount,
                 upcomingTransactionInfo = upcomingInfo,
-                transactionId = txList.first().id!!,
-                transactionUuid = txList.first().uuid,
+                transactionId = firstTx.id!!,
+                transactionUuid = firstTx.uuid,
             )
         }
     }

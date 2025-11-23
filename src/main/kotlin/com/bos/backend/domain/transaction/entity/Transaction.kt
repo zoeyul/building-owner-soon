@@ -17,6 +17,8 @@ data class Transaction(
     val uuid: String = UUID.randomUUID().toString(),
     @Column("user_id")
     val userId: Long,
+    @Column("counterpart_id")
+    val counterpartId: Long? = null,
     @Column("transaction_type")
     val transactionType: TransactionType,
     @Column("counterpart_name")

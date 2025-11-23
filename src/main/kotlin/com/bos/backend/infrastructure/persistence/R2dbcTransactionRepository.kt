@@ -1,6 +1,7 @@
 package com.bos.backend.infrastructure.persistence
 
 import com.bos.backend.domain.transaction.entity.Transaction
+import com.bos.backend.domain.transaction.entity.TransactionWithCounterpart
 import com.bos.backend.domain.transaction.repository.TransactionRepository
 import org.springframework.data.r2dbc.repository.Modifying
 import org.springframework.data.r2dbc.repository.Query
@@ -36,10 +37,25 @@ class R2dbcTransactionRepositoryImpl(
     override suspend fun findByIdIncludingDeleted(id: Long): Transaction? =
         coroutineRepository.findByIdIncludingDeleted(id)
 
+    override suspend fun findByIdWithCounterpart(id: Long): TransactionWithCounterpart? {
+        // JOIN 쿼리는 서비스 레이어에서 처리
+        TODO("This will be handled in service layer by fetching transaction and counterpart separately")
+    }
+
+    override suspend fun findByUuidWithCounterpart(uuid: String): TransactionWithCounterpart? {
+        // JOIN 쿼리는 서비스 레이어에서 처리
+        TODO("This will be handled in service layer by fetching transaction and counterpart separately")
+    }
+
     override suspend fun findByUuid(uuid: String): Transaction? = coroutineRepository.findByUuidAndDeletedAtIsNull(uuid)
 
     override suspend fun findByUserId(userId: Long): List<Transaction> =
         coroutineRepository.findByUserIdAndDeletedAtIsNull(userId)
+
+    override suspend fun findByUserIdWithCounterpart(userId: Long): List<TransactionWithCounterpart> {
+        // JOIN 쿼리는 서비스 레이어에서 처리
+        TODO("This will be handled in service layer by fetching transactions and counterparts separately")
+    }
 
     override suspend fun softDeleteById(id: Long): Boolean = coroutineRepository.softDeleteById(id) > 0
 }
