@@ -25,6 +25,7 @@ import org.springframework.transaction.reactive.executeAndAwait
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Service
@@ -422,7 +423,7 @@ class TransactionService(
                 )
             }
 
-        val today = LocalDate.now()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val twoDaysFromNow = today.plusDays(2)
 
         return groupedTransactions.map { (_, txList) ->
@@ -469,27 +470,21 @@ class TransactionService(
         twoDaysFromNow: LocalDate,
     ): UpcomingTransactionInfoDTO? {
         val transactionIds = transactions.mapNotNull { it.id }
-        val schedules =
-            allSchedules
-                .filter { it.transactionId in transactionIds }
-                .filter { it.status != RepaymentStatus.COMPLETED }
 
-        val upcomingSchedules =
-            schedules
-                .filter {
-                    it.status == RepaymentStatus.OVERDUE ||
-                        it.status == RepaymentStatus.IN_PROGRESS ||
-                        (it.scheduledDate in today..twoDaysFromNow)
-                }
-                .sortedBy { it.scheduledDate }
-
-        return upcomingSchedules.firstOrNull()?.let { earliestSchedule ->
-            UpcomingTransactionInfoDTO(
-                scheduleId = earliestSchedule.id!!,
-                dueDate = earliestSchedule.scheduledDate,
-                amount = earliestSchedule.scheduledAmount.toLong(),
-            )
-        }
+        return allSchedules
+            .filter { it.transactionId in transactionIds }
+            .filter {
+                it.status == RepaymentStatus.IN_PROGRESS ||
+                    (it.scheduledDate in today..twoDaysFromNow)
+            }
+            .minByOrNull { it.scheduledDate }
+            ?.let { earliestSchedule ->
+                UpcomingTransactionInfoDTO(
+                    scheduleId = earliestSchedule.id!!,
+                    dueDate = earliestSchedule.scheduledDate,
+                    amount = earliestSchedule.scheduledAmount.toLong(),
+                )
+            }
     }
 
     private suspend fun toTransactionResponseDTO(
