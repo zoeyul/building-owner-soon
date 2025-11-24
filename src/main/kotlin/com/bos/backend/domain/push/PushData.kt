@@ -20,6 +20,11 @@ data class PushData(
      */
     val uri: String,
     /**
+     * 알림 ID (푸시 클릭 시 읽음 처리용)
+     */
+    @JsonProperty("notificationId")
+    val notificationId: Long? = null,
+    /**
      * 상환 스케줄 ID (상환 스케줄 화면인 경우에만 사용)
      * 중첩 data 구조로 전달: { "data": { "scheduleId": 225 } }
      */
@@ -29,9 +34,13 @@ data class PushData(
         /**
          * 거래 내역 조회 화면으로 이동하는 데이터 생성
          */
-        fun forTransaction(transactionId: Long): PushData {
+        fun forTransaction(
+            transactionId: Long,
+            notificationId: Long? = null,
+        ): PushData {
             return PushData(
                 uri = "/transaction/$transactionId",
+                notificationId = notificationId,
                 data = null,
             )
         }
@@ -42,9 +51,11 @@ data class PushData(
         fun forRepaymentSchedule(
             transactionId: Long,
             scheduleId: Long,
+            notificationId: Long? = null,
         ): PushData {
             return PushData(
                 uri = "/transaction/$transactionId/repayment",
+                notificationId = notificationId,
                 data = ScheduleData(scheduleId = scheduleId),
             )
         }

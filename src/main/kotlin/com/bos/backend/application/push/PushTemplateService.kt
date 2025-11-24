@@ -23,6 +23,7 @@ class PushTemplateService {
      * @param amount 상환 금액
      * @param transactionId 거래 ID
      * @param scheduleId 상환 스케줄 ID
+     * @param notificationId 알림 ID (푸시 클릭 시 읽음 처리용)
      */
     @Suppress("LongParameterList")
     fun createRepaymentReminderPayer(
@@ -32,6 +33,7 @@ class PushTemplateService {
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         val template = PushTemplateType.REPAYMENT_REMINDER_PAYER
         val body =
@@ -44,7 +46,7 @@ class PushTemplateService {
             token = expoToken,
             title = template.titleTemplate,
             body = body,
-            data = PushData.forRepaymentSchedule(transactionId, scheduleId),
+            data = PushData.forRepaymentSchedule(transactionId, scheduleId, notificationId),
         )
     }
 
@@ -59,6 +61,7 @@ class PushTemplateService {
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         val template = PushTemplateType.REPAYMENT_REMINDER_PAYEE
         val body =
@@ -71,7 +74,7 @@ class PushTemplateService {
             token = expoToken,
             title = template.titleTemplate,
             body = body,
-            data = PushData.forRepaymentSchedule(transactionId, scheduleId),
+            data = PushData.forRepaymentSchedule(transactionId, scheduleId, notificationId),
         )
     }
 
@@ -86,6 +89,7 @@ class PushTemplateService {
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         val template = PushTemplateType.REPAYMENT_TODAY_PAYER
         val body =
@@ -98,7 +102,7 @@ class PushTemplateService {
             token = expoToken,
             title = template.titleTemplate,
             body = body,
-            data = PushData.forRepaymentSchedule(transactionId, scheduleId),
+            data = PushData.forRepaymentSchedule(transactionId, scheduleId, notificationId),
         )
     }
 
@@ -113,6 +117,7 @@ class PushTemplateService {
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         val template = PushTemplateType.REPAYMENT_TODAY_PAYEE
         val body =
@@ -125,19 +130,21 @@ class PushTemplateService {
             token = expoToken,
             title = template.titleTemplate,
             body = body,
-            data = PushData.forRepaymentSchedule(transactionId, scheduleId),
+            data = PushData.forRepaymentSchedule(transactionId, scheduleId, notificationId),
         )
     }
 
     /**
      * 상환 지연 경고 (갚을 사람) 메시지 생성
      */
+    @Suppress("LongParameterList")
     fun createRepaymentOverduePayer(
         expoToken: String,
         nickname: String,
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         val template = PushTemplateType.REPAYMENT_OVERDUE_PAYER
         val body =
@@ -149,19 +156,21 @@ class PushTemplateService {
             token = expoToken,
             title = template.titleTemplate,
             body = body,
-            data = PushData.forRepaymentSchedule(transactionId, scheduleId),
+            data = PushData.forRepaymentSchedule(transactionId, scheduleId, notificationId),
         )
     }
 
     /**
      * 상환 지연 경고 (받을 사람) 메시지 생성
      */
+    @Suppress("LongParameterList")
     fun createRepaymentOverduePayee(
         expoToken: String,
         nickname: String,
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         val template = PushTemplateType.REPAYMENT_OVERDUE_PAYEE
         val body =
@@ -173,7 +182,7 @@ class PushTemplateService {
             token = expoToken,
             title = template.titleTemplate,
             body = body,
-            data = PushData.forRepaymentSchedule(transactionId, scheduleId),
+            data = PushData.forRepaymentSchedule(transactionId, scheduleId, notificationId),
         )
     }
 

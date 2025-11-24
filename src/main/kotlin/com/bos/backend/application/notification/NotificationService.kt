@@ -86,6 +86,29 @@ class NotificationService(
         return savedNotification
     }
 
+    /**
+     * 알림 레코드만 생성 (푸시 전송 없음)
+     * 배치 작업 등에서 푸시는 별도로 전송하고 레코드만 저장할 때 사용
+     */
+    suspend fun createNotificationRecord(
+        userId: Long,
+        title: String,
+        content: String,
+        category: NotificationCategory,
+        deepLink: String?,
+    ): Notification {
+        val notification =
+            Notification(
+                userId = userId,
+                title = title,
+                content = content,
+                category = category,
+                deepLink = deepLink,
+            )
+
+        return notificationRepository.save(notification)
+    }
+
     private suspend fun sendPushNotification(
         userId: Long,
         title: String,

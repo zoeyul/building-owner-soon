@@ -1,8 +1,10 @@
 package com.bos.backend.application.transaction
 
+import com.bos.backend.application.notification.NotificationService
 import com.bos.backend.application.push.ExpoPushService
 import com.bos.backend.application.push.PushTemplateService
 import com.bos.backend.domain.push.ExpoPushMessage
+import com.bos.backend.domain.push.PushTemplateType
 import com.bos.backend.domain.transaction.entity.RepaymentSchedule
 import com.bos.backend.domain.transaction.enum.TransactionType
 import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
@@ -16,8 +18,10 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 
 @Service
+@Suppress("LongParameterList")
 class RepaymentSchedulePushBatchService(
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
     private val transactionRepository: TransactionRepository,
@@ -25,6 +29,7 @@ class RepaymentSchedulePushBatchService(
     private val userDeviceRepository: UserDeviceRepository,
     private val pushTemplateService: PushTemplateService,
     private val expoPushService: ExpoPushService,
+    private val notificationService: NotificationService,
 ) {
     private val logger = LoggerFactory.getLogger(RepaymentSchedulePushBatchService::class.java)
 
@@ -188,6 +193,20 @@ class RepaymentSchedulePushBatchService(
                 devices.map { "deviceId=${it.deviceId}, hasExpoToken=${it.expoToken != null}" },
             )
 
+            // Notification 레코드를 먼저 생성하여 notificationId 획득
+            val notification =
+                createNotificationRecord(
+                    userId = user.id!!,
+                    pushType = pushType,
+                    transactionType = transaction.transactionType,
+                    nickname = user.nickname,
+                    counterpartName = transaction.counterpartName,
+                    amount = schedule.scheduledAmount.toLong(),
+                    transactionId = transaction.id!!,
+                    scheduleId = schedule.id!!,
+                )
+
+            // 푸시 메시지에 notificationId 포함
             val messages =
                 devices.mapNotNull { device ->
                     device.expoToken?.let { token ->
@@ -200,6 +219,7 @@ class RepaymentSchedulePushBatchService(
                             amount = schedule.scheduledAmount.toLong(),
                             transactionId = transaction.id!!,
                             scheduleId = schedule.id!!,
+                            notificationId = notification?.id,
                         )
                     }
                 }
@@ -245,6 +265,7 @@ class RepaymentSchedulePushBatchService(
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
+        notificationId: Long? = null,
     ): ExpoPushMessage {
         return when (pushType) {
             PushType.REMINDER -> {
@@ -256,6 +277,7 @@ class RepaymentSchedulePushBatchService(
                         amount = amount,
                         transactionId = transactionId,
                         scheduleId = scheduleId,
+                        notificationId = notificationId,
                     )
                 } else {
                     pushTemplateService.createRepaymentReminderPayer(
@@ -265,6 +287,7 @@ class RepaymentSchedulePushBatchService(
                         amount = amount,
                         transactionId = transactionId,
                         scheduleId = scheduleId,
+                        notificationId = notificationId,
                     )
                 }
             }
@@ -277,6 +300,7 @@ class RepaymentSchedulePushBatchService(
                         amount = amount,
                         transactionId = transactionId,
                         scheduleId = scheduleId,
+                        notificationId = notificationId,
                     )
                 } else {
                     pushTemplateService.createRepaymentTodayPayer(
@@ -286,6 +310,7 @@ class RepaymentSchedulePushBatchService(
                         amount = amount,
                         transactionId = transactionId,
                         scheduleId = scheduleId,
+                        notificationId = notificationId,
                     )
                 }
             }
@@ -297,6 +322,7 @@ class RepaymentSchedulePushBatchService(
                         amount = amount,
                         transactionId = transactionId,
                         scheduleId = scheduleId,
+                        notificationId = notificationId,
                     )
                 } else {
                     pushTemplateService.createRepaymentOverduePayer(
@@ -305,10 +331,116 @@ class RepaymentSchedulePushBatchService(
                         amount = amount,
                         transactionId = transactionId,
                         scheduleId = scheduleId,
+                        notificationId = notificationId,
                     )
                 }
             }
         }
+    }
+
+    /**
+     * Notification 레코드 생성 (푸시 전송 전에 호출)
+     * @return 생성된 Notification 객체 (notificationId 포함)
+     */
+    @Suppress("LongParameterList", "TooGenericExceptionCaught", "UnusedParameter")
+    private suspend fun createNotificationRecord(
+        userId: Long,
+        pushType: PushType,
+        transactionType: TransactionType,
+        nickname: String,
+        counterpartName: String,
+        amount: Long,
+        transactionId: Long,
+        scheduleId: Long,
+    ): com.bos.backend.domain.notification.entity.Notification? {
+        return try {
+            // PushTemplateType 결정
+            val templateType = determinePushTemplateType(pushType, transactionType)
+
+            // 템플릿으로 메시지 생성
+            val title = templateType.titleTemplate
+            val body = formatPushBody(templateType, nickname, counterpartName, amount)
+
+            // NotificationCategory 매핑
+            val category = templateType.toNotificationCategory()
+
+            // Notification 레코드 생성
+            val notification =
+                notificationService.createNotificationRecord(
+                    userId = userId,
+                    title = title,
+                    content = body,
+                    category = category,
+                    deepLink = null,
+                )
+
+            logger.info(
+                "Created notification record: id={}, userId={}, scheduleId={}, category={}",
+                notification.id,
+                userId,
+                scheduleId,
+                category,
+            )
+
+            notification
+        } catch (e: Exception) {
+            logger.error(
+                "Failed to create notification record for userId={}, scheduleId={}",
+                userId,
+                scheduleId,
+                e,
+            )
+            null
+        }
+    }
+
+    /**
+     * PushType과 TransactionType으로부터 PushTemplateType 결정
+     */
+    private fun determinePushTemplateType(
+        pushType: PushType,
+        transactionType: TransactionType,
+    ): PushTemplateType {
+        return when (pushType) {
+            PushType.REMINDER -> {
+                if (transactionType == TransactionType.LEND) {
+                    PushTemplateType.REPAYMENT_REMINDER_PAYEE
+                } else {
+                    PushTemplateType.REPAYMENT_REMINDER_PAYER
+                }
+            }
+            PushType.TODAY -> {
+                if (transactionType == TransactionType.LEND) {
+                    PushTemplateType.REPAYMENT_TODAY_PAYEE
+                } else {
+                    PushTemplateType.REPAYMENT_TODAY_PAYER
+                }
+            }
+            PushType.OVERDUE -> {
+                if (transactionType == TransactionType.LEND) {
+                    PushTemplateType.REPAYMENT_OVERDUE_PAYEE
+                } else {
+                    PushTemplateType.REPAYMENT_OVERDUE_PAYER
+                }
+            }
+        }
+    }
+
+    /**
+     * 푸시 메시지 본문 포맷팅
+     */
+    private fun formatPushBody(
+        templateType: PushTemplateType,
+        nickname: String,
+        counterpartName: String,
+        amount: Long,
+    ): String {
+        val formattedAmount = String.format(Locale.KOREA, "%,d", amount)
+        return templateType.bodyTemplate
+            .replace("{nickname}", nickname)
+            .replace("{payeeName}", counterpartName)
+            .replace("{payerName}", counterpartName)
+            .replace("{amount}", formattedAmount)
     }
 }
 

@@ -1,5 +1,7 @@
 package com.bos.backend.domain.push
 
+import com.bos.backend.domain.notification.enums.NotificationCategory
+
 /**
  * 푸시 알림 템플릿 타입
  * 각 템플릿은 특정 상황에서 발송되는 메시지 형식을 정의합니다
@@ -97,5 +99,27 @@ enum class PushTemplateType(
 
         /** 거래 내역 하위 상환 스케줄 완료 처리 화면 */
         REPAYMENT_SCHEDULE,
+    }
+
+    /**
+     * PushTemplateType을 NotificationCategory로 변환
+     * 각 푸시 템플릿 타입에 대응하는 알림 카테고리를 반환합니다
+     */
+    fun toNotificationCategory(): NotificationCategory {
+        return when (this) {
+            REPAYMENT_REMINDER_PAYER,
+            REPAYMENT_TODAY_PAYER,
+            REPAYMENT_OVERDUE_PAYER,
+            -> NotificationCategory.REPAYMENT_DUE
+
+            REPAYMENT_REMINDER_PAYEE,
+            REPAYMENT_TODAY_PAYEE,
+            REPAYMENT_OVERDUE_PAYEE,
+            -> NotificationCategory.RECEIVABLE_DUE
+
+            PARTIAL_REPAYMENT_COMPLETE -> NotificationCategory.REPAYMENT_COMPLETED
+
+            TRANSACTION_COMPLETE -> NotificationCategory.GENERAL
+        }
     }
 }

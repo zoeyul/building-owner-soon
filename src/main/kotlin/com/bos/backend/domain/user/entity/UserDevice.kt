@@ -15,7 +15,7 @@ data class UserDevice(
     @Column("device_id")
     val deviceId: String,
     @Column("fcm_token")
-    val fcmToken: String,
+    val fcmToken: String? = null,
     @Column("expo_token")
     val expoToken: String? = null,
     val platform: Platform? = null,
