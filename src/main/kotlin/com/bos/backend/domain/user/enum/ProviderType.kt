@@ -5,6 +5,7 @@ enum class ProviderType(
 ) {
     KAKAO("KAKAO"),
     BOS("BOS"),
+    APPLE("APPLE"),
     ;
 
     companion object {

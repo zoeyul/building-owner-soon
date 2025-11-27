@@ -37,6 +37,17 @@ app:
     bucket-name: bos-assets
     base-url: https://bos-assets.s3.ap-northeast-2.amazonaws.com
 
+apple:
+  team-id: TEST_TEAM_ID
+  client-id: com.test.app
+  key-id: TEST_KEY_ID
+  private-key: |
+    -----BEGIN PRIVATE KEY-----
+    MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgdummyPrivateKeyForT
+    estingPurposesOnlyNotRealKeyDatahQEQgBQAABBA+dummyDataForTestingOnly
+    NotARealKeyPleaseDoNotUseInProduction
+    -----END PRIVATE KEY-----
+
 cors:
   allowed-origins:
     - http://localhost:3000

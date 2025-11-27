@@ -45,6 +45,12 @@ app:
     bucket-name: ${s3-bucket-name}
     base-url: ${s3-base-url}
 
+apple:
+  team-id: ${apple-team-id}
+  client-id: ${apple-client-id}
+  key-id: ${apple-key-id}
+  private-key: ${apple-private-key}
+
 logging:
   level:
     org.springframework.data.r2dbc: DEBUG
