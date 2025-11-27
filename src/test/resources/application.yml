@@ -47,6 +47,7 @@ apple:
     estingPurposesOnlyNotRealKeyDatahQEQgBQAABBA+dummyDataForTestingOnly
     NotARealKeyPleaseDoNotUseInProduction
     -----END PRIVATE KEY-----
+  redirect-uri: https://localhost:8000/oauth/apple
 
 cors:
   allowed-origins:

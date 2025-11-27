@@ -50,6 +50,7 @@ apple:
   client-id: ${apple-client-id}
   key-id: ${apple-key-id}
   private-key: ${apple-private-key}
+  redirect-uri: ${apple-redirect-uri:https://api.buildingownersoon.app/oauth/apple}
 
 logging:
   level:
@@ -65,6 +66,7 @@ cors:
     - "https://192.168.0.6:3000"
     - "https://buildingownersoon.app"
     - "https://www.buildingownersoon.app"
+    - "https://appleid.apple.com"
   allowed-methods:
     - "HEAD"
     - "GET"

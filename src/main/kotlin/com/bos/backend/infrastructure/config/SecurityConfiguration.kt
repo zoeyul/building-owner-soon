@@ -55,6 +55,8 @@ class SecurityConfiguration(
                         "/actuator/**",
                         "/push/test/**",
                         "/transactions/*/share",
+                        "/oauth/apple",
+                        "/oauth/apple/**",
                     ).permitAll()
                     .pathMatchers("/admin/**").hasRole("PUSH_TEST")
                     .anyExchange()
