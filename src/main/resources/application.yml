@@ -46,10 +46,11 @@ app:
     base-url: ${s3-base-url}
 
 apple:
-  team-id: ${apple-team-id}
-  client-id: ${apple-client-id}
-  key-id: ${apple-key-id}
-  private-key: ${apple-private-key}
+  bundle-id: ${apple-bundle-id:app.bos.buildingownersoon}
+  team-id: ${apple-team-id:}
+  client-id: ${apple-client-id:}
+  key-id: ${apple-key-id:}
+  private-key: ${apple-private-key:}
   redirect-uri: ${apple-redirect-uri:https://api.buildingownersoon.app/oauth/apple}
 
 logging:

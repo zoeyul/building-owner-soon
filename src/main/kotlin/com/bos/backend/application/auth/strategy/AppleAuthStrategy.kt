@@ -28,7 +28,7 @@ class AppleAuthStrategy(
     override val providerType: ProviderType = ProviderType.APPLE
 
     override suspend fun signUp(request: SignUpRequestDTO): AuthResult {
-        requireNotNull(request.providerAccessToken) { "Authorization code is required for Apple signup" }
+        requireNotNull(request.providerAccessToken) { "Identity token is required for Apple signup" }
 
         val appleUserInfo = validateAndExtractUserInfo(request.providerAccessToken)
 
@@ -64,7 +64,7 @@ class AppleAuthStrategy(
     }
 
     override suspend fun signIn(request: SignInRequestDTO): AuthResult {
-        requireNotNull(request.providerAccessToken) { "Authorization code is required for Apple signin" }
+        requireNotNull(request.providerAccessToken) { "Identity token is required for Apple signin" }
 
         val appleUserInfo = validateAndExtractUserInfo(request.providerAccessToken)
 
@@ -79,11 +79,11 @@ class AppleAuthStrategy(
         return AuthResult(user, userAuth.copy(lastLoginAt = Instant.now()))
     }
 
-    private suspend fun validateAndExtractUserInfo(authorizationCode: String) =
+    private suspend fun validateAndExtractUserInfo(identityToken: String) =
         try {
-            appleApiService.verifyAuthorizationCode(authorizationCode)
+            appleApiService.verifyIdentityToken(identityToken)
         } catch (e: RuntimeException) {
-            logger.error("Apple authorization code validation failed: ${e.message}", e)
-            throw IllegalArgumentException("Invalid Apple authorization code")
+            logger.error("Apple identity token validation failed: ${e.message}", e)
+            throw IllegalArgumentException("Invalid Apple identity token")
         }
 }
