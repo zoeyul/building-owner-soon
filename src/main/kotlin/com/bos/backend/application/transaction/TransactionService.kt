@@ -224,7 +224,10 @@ class TransactionService(
                 throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
             }
 
-            // Soft delete 수행
+            // 연관된 repayment_schedule 삭제 (hard delete)
+            repaymentScheduleRepository.deleteByTransactionId(transactionId)
+
+            // Transaction soft delete 수행
             transactionRepository.softDeleteById(transactionId)
         }
 
@@ -314,12 +317,15 @@ class TransactionService(
                 remainingAmount = remainingAmount,
             )
 
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+
         // Calculator의 PaymentSchedule을 Domain의 RepaymentSchedule로 변환
         return paymentSchedules.map { schedule ->
             RepaymentSchedule(
                 transactionId = transaction.id!!,
                 scheduledDate = schedule.scheduledDate,
                 scheduledAmount = schedule.scheduledAmount,
+                status = determineInitialStatus(schedule.scheduledDate, today),
             )
         }
     }
@@ -339,13 +345,28 @@ class TransactionService(
                 remainingAmount = remainingAmount,
             )
 
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+
         // Calculator의 PaymentSchedule을 Domain의 RepaymentSchedule로 변환
         return paymentSchedules.map { schedule ->
             RepaymentSchedule(
                 transactionId = transaction.id!!,
                 scheduledDate = schedule.scheduledDate,
                 scheduledAmount = schedule.scheduledAmount,
+                status = determineInitialStatus(schedule.scheduledDate, today),
             )
+        }
+    }
+
+    private fun determineInitialStatus(
+        scheduledDate: LocalDate,
+        today: LocalDate,
+    ): RepaymentStatus {
+        val twoDaysLater = today.plusDays(2)
+        return if (scheduledDate in today..twoDaysLater) {
+            RepaymentStatus.IN_PROGRESS
+        } else {
+            RepaymentStatus.SCHEDULED
         }
     }
 

@@ -12,7 +12,7 @@ data class User(
     val id: Long? = null,
     val nickname: String,
     @Column("notification_allowed")
-    val isNotificationAllowed: Boolean = false,
+    val isNotificationAllowed: Boolean = true,
     @Column("marketing_agreed")
     val isMarketingAgreed: Boolean = false,
     @Column("character_components")

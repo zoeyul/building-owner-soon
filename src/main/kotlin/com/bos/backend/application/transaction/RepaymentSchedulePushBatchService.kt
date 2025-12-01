@@ -47,10 +47,11 @@ class RepaymentSchedulePushBatchService(
 
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val twoDaysLater = today.plusDays(2)
+            val yesterday = today.minusDays(1)
 
             val reminderCount = sendReminderPushes(twoDaysLater)
             val todayCount = sendTodayPushes(today)
-            val overdueCount = sendOverduePushes()
+            val overdueCount = sendOverduePushes(yesterday)
 
             logger.info(
                 "Completed repayment push notification batch job. " +
@@ -108,9 +109,9 @@ class RepaymentSchedulePushBatchService(
         }
     }
 
-    suspend fun sendOverduePushes(): Int {
-        val schedules = repaymentScheduleRepository.findOverdueSchedules()
-        logger.info("Found {} overdue schedules for overdue push (D+1)", schedules.size)
+    suspend fun sendOverduePushes(yesterday: LocalDate): Int {
+        val schedules = repaymentScheduleRepository.findOverdueSchedules(yesterday)
+        logger.info("Found {} overdue schedules for overdue push (D+1, scheduled_date: {})", schedules.size, yesterday)
 
         return schedules.count { schedule ->
             sendPushForSchedule(schedule, PushType.OVERDUE)

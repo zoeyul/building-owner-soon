@@ -46,7 +46,7 @@ interface R2dbcRepaymentScheduleRepository :
         UPDATE repayment_schedules
         SET status = :overdueStatus, updated_at = CURRENT_TIMESTAMP
         WHERE scheduled_date < :today
-        AND status != :completedStatus
+        AND status NOT IN (:completedStatus, :overdueStatus)
         """,
     )
     override suspend fun updateOverdueStatuses(
@@ -62,7 +62,7 @@ interface R2dbcRepaymentScheduleRepository :
         SET status = :inProgressStatus, updated_at = CURRENT_TIMESTAMP
         WHERE scheduled_date >= :startDate
         AND scheduled_date <= :endDate
-        AND status != :completedStatus
+        AND status NOT IN (:completedStatus, :inProgressStatus)
         """,
     )
     override suspend fun updateInProgressStatuses(
@@ -96,8 +96,18 @@ interface R2dbcRepaymentScheduleRepository :
         """
         SELECT * FROM repayment_schedules
         WHERE status = 'OVERDUE'
+        AND scheduled_date = :yesterday
         ORDER BY scheduled_date ASC
         """,
     )
-    override suspend fun findOverdueSchedules(): List<RepaymentSchedule>
+    override suspend fun findOverdueSchedules(yesterday: LocalDate): List<RepaymentSchedule>
+
+    @Modifying
+    @Query(
+        """
+        DELETE FROM repayment_schedules
+        WHERE transaction_id = :transactionId
+        """,
+    )
+    override suspend fun deleteByTransactionId(transactionId: Long): Int
 }

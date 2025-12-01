@@ -40,5 +40,7 @@ interface RepaymentScheduleRepository {
 
     suspend fun findSchedulesForToday(today: LocalDate): List<RepaymentSchedule>
 
-    suspend fun findOverdueSchedules(): List<RepaymentSchedule>
+    suspend fun findOverdueSchedules(yesterday: LocalDate): List<RepaymentSchedule>
+
+    suspend fun deleteByTransactionId(transactionId: Long): Int
 }

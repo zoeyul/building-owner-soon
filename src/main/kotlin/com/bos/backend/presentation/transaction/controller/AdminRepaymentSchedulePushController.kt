@@ -59,7 +59,8 @@ class AdminRepaymentSchedulePushController(
                     repaymentSchedulePushBatchService.sendTodayPushes(today) to "TODAY (D-Day)"
                 }
                 "OVERDUE" -> {
-                    repaymentSchedulePushBatchService.sendOverduePushes() to "OVERDUE (D+1)"
+                    val yesterday = today.minusDays(1)
+                    repaymentSchedulePushBatchService.sendOverduePushes(yesterday) to "OVERDUE (D+1)"
                 }
                 else ->
                     return ResponseEntity.badRequest().body(
@@ -80,14 +81,16 @@ class AdminRepaymentSchedulePushController(
         )
     }
 
+    @Suppress("LongMethod")
     @GetMapping("/preview")
     suspend fun previewNextBatch(): ResponseEntity<Map<String, Any>> {
         val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val twoDaysLater = today.plusDays(2)
+        val yesterday = today.minusDays(1)
 
         val reminderSchedules = repaymentScheduleRepository.findSchedulesForReminder(twoDaysLater)
         val todaySchedules = repaymentScheduleRepository.findSchedulesForToday(today)
-        val overdueSchedules = repaymentScheduleRepository.findOverdueSchedules()
+        val overdueSchedules = repaymentScheduleRepository.findOverdueSchedules(yesterday)
 
         return ResponseEntity.ok(
             mapOf(
