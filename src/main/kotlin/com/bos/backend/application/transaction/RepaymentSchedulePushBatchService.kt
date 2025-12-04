@@ -3,7 +3,9 @@ package com.bos.backend.application.transaction
 import com.bos.backend.application.notification.NotificationService
 import com.bos.backend.application.push.ExpoPushService
 import com.bos.backend.application.push.PushTemplateService
+import com.bos.backend.domain.notification.entity.Notification
 import com.bos.backend.domain.push.ExpoPushMessage
+import com.bos.backend.domain.push.PushData
 import com.bos.backend.domain.push.PushTemplateType
 import com.bos.backend.domain.transaction.entity.RepaymentSchedule
 import com.bos.backend.domain.transaction.enum.TransactionType
@@ -11,6 +13,7 @@ import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
 import com.bos.backend.domain.transaction.repository.TransactionRepository
 import com.bos.backend.domain.user.repository.UserDeviceRepository
 import com.bos.backend.domain.user.repository.UserRepository
+import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -30,6 +33,7 @@ class RepaymentSchedulePushBatchService(
     private val pushTemplateService: PushTemplateService,
     private val expoPushService: ExpoPushService,
     private val notificationService: NotificationService,
+    private val objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(RepaymentSchedulePushBatchService::class.java)
 
@@ -353,7 +357,7 @@ class RepaymentSchedulePushBatchService(
         amount: Long,
         transactionId: Long,
         scheduleId: Long,
-    ): com.bos.backend.domain.notification.entity.Notification? {
+    ): Notification? {
         return try {
             // PushTemplateType 결정
             val templateType = determinePushTemplateType(pushType, transactionType)
@@ -365,6 +369,10 @@ class RepaymentSchedulePushBatchService(
             // NotificationCategory 매핑
             val category = templateType.toNotificationCategory()
 
+            // PushData 생성 및 JSON 직렬화
+            val pushData = PushData.forRepaymentSchedule(transactionId, scheduleId)
+            val deepLink = objectMapper.writeValueAsString(pushData)
+
             // Notification 레코드 생성
             val notification =
                 notificationService.createNotificationRecord(
@@ -372,7 +380,7 @@ class RepaymentSchedulePushBatchService(
                     title = title,
                     content = body,
                     category = category,
-                    deepLink = null,
+                    deepLink = deepLink,
                 )
 
             logger.info(
