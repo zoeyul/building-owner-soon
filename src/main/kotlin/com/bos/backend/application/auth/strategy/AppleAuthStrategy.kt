@@ -46,7 +46,7 @@ class AppleAuthStrategy(
                 User(
                     nickname = NicknameGenerator.generateRandomNickname(),
                     character = CharacterFactory.createDefaultCharacter(characterAssetService),
-                    isNotificationAllowed = false,
+                    isNotificationAllowed = true,
                 ),
             )
 

@@ -37,7 +37,7 @@ class BosAuthStrategy(
                 User(
                     nickname = NicknameGenerator.generateRandomNickname(),
                     character = CharacterFactory.createDefaultCharacter(characterAssetService),
-                    isNotificationAllowed = false,
+                    isNotificationAllowed = true,
                 ),
             )
 

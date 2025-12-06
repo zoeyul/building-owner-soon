@@ -47,7 +47,7 @@ class KakaoAuthStrategy(
                 User(
                     nickname = NicknameGenerator.generateRandomNickname(),
                     character = CharacterFactory.createDefaultCharacter(characterAssetService),
-                    isNotificationAllowed = false,
+                    isNotificationAllowed = true,
                 ),
             )
 
