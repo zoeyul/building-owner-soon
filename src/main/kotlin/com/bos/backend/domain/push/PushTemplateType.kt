@@ -91,6 +91,26 @@ enum class PushTemplateType(
         bodyTemplate = "{nickname}님, {partnerName}님과의 거래를 모두 완료했어요! 수고하셨습니다.",
         deepLinkType = DeepLinkType.TRANSACTION,
     ),
+
+    /**
+     * 거래 완료 안내 (돈 갚기) - BORROW 타입 거래 100% 완료 시
+     */
+    TRANSACTION_COMPLETE_BORROW(
+        description = "거래 완료 안내 (돈 갚기)",
+        titleTemplate = "🥳 돈 갚기를 모두 완료했어요",
+        bodyTemplate = "{counterpartName}님과의 거래가 완료됐어요! 책임감 있는 상환으로 건물주에 한 걸음 가까워졌어요 🏠",
+        deepLinkType = DeepLinkType.TRANSACTION,
+    ),
+
+    /**
+     * 거래 완료 안내 (돈 받기) - LEND 타입 거래 100% 완료 시
+     */
+    TRANSACTION_COMPLETE_LEND(
+        description = "거래 완료 안내 (돈 받기)",
+        titleTemplate = "돈 받기를 모두 완료했어요",
+        bodyTemplate = "{nickname}님, {counterpartName}님에게 모든 돈을 받았어요. 수고하셨습니다!",
+        deepLinkType = DeepLinkType.TRANSACTION,
+    ),
     ;
 
     enum class DeepLinkType {
@@ -120,6 +140,10 @@ enum class PushTemplateType(
             PARTIAL_REPAYMENT_COMPLETE -> NotificationCategory.REPAYMENT_COMPLETED
 
             TRANSACTION_COMPLETE -> NotificationCategory.GENERAL
+
+            TRANSACTION_COMPLETE_BORROW -> NotificationCategory.REPAYMENT_COMPLETED
+
+            TRANSACTION_COMPLETE_LEND -> NotificationCategory.RECEIVABLE_COMPLETED
         }
     }
 }

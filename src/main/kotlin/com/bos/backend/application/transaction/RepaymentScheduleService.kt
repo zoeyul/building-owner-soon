@@ -2,22 +2,43 @@ package com.bos.backend.application.transaction
 
 import com.bos.backend.application.CommonErrorCode
 import com.bos.backend.application.CustomException
+import com.bos.backend.application.notification.NotificationService
+import com.bos.backend.application.push.ExpoPushService
+import com.bos.backend.application.push.PushTemplateService
+import com.bos.backend.domain.push.PushData
+import com.bos.backend.domain.push.PushTemplateType
 import com.bos.backend.domain.transaction.entity.RepaymentSchedule
 import com.bos.backend.domain.transaction.entity.Transaction
 import com.bos.backend.domain.transaction.enum.RepaymentStatus
 import com.bos.backend.domain.transaction.enum.RepaymentType
+import com.bos.backend.domain.transaction.enum.TransactionType
 import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
 import com.bos.backend.domain.transaction.repository.TransactionRepository
+import com.bos.backend.domain.user.repository.UserDeviceRepository
+import com.bos.backend.domain.user.repository.UserRepository
 import com.bos.backend.presentation.transaction.dto.CreateRepaymentRequestDTO
 import com.bos.backend.presentation.transaction.dto.RepaymentManagementResponseDTO
 import com.bos.backend.presentation.transaction.dto.RepaymentScheduleItemDTO
+import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.flow.toList
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 
 @Service
+@Suppress("LongParameterList", "TooManyFunctions")
 class RepaymentScheduleService(
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
     private val transactionRepository: TransactionRepository,
+    private val notificationService: NotificationService,
+    private val expoPushService: ExpoPushService,
+    private val pushTemplateService: PushTemplateService,
+    private val userDeviceRepository: UserDeviceRepository,
+    private val userRepository: UserRepository,
+    private val objectMapper: ObjectMapper,
 ) {
+    private val logger = LoggerFactory.getLogger(RepaymentScheduleService::class.java)
+
     companion object {
         private const val ROUNDING_UNIT = 100 // 100원 단위 절삭을 위한 상수
     }
@@ -274,5 +295,96 @@ class RepaymentScheduleService(
         val totalCompletedAmount = transaction.initialCompletedAmount + schedulesCompletedAmount
         val updatedTransaction = transaction.updateCompletedAmount(totalCompletedAmount)
         transactionRepository.save(updatedTransaction)
+
+        // 거래 완료 체크 및 푸시/알림 전송
+        if (updatedTransaction.remainingAmount().compareTo(BigDecimal.ZERO) == 0) {
+            sendTransactionCompletePush(updatedTransaction)
+        }
+    }
+
+    /**
+     * 거래 완료 시 푸시 및 알림 전송
+     */
+    @Suppress("TooGenericExceptionCaught", "ReturnCount", "LongMethod")
+    private suspend fun sendTransactionCompletePush(transaction: Transaction) {
+        try {
+            val user = userRepository.findById(transaction.userId) ?: return
+            if (!user.isNotificationAllowed) {
+                logger.info("User {} has notifications disabled, skipping transaction complete push", user.id)
+                return
+            }
+
+            val devices = userDeviceRepository.findByUserId(user.id!!).toList()
+            if (devices.isEmpty()) {
+                logger.info("No devices found for user {}, skipping transaction complete push", user.id)
+                return
+            }
+
+            // 템플릿 타입 결정
+            val templateType =
+                when (transaction.transactionType) {
+                    TransactionType.BORROW -> PushTemplateType.TRANSACTION_COMPLETE_BORROW
+                    TransactionType.LEND -> PushTemplateType.TRANSACTION_COMPLETE_LEND
+                }
+
+            // Notification 레코드 생성
+            val pushData = PushData.forTransaction(transaction.id!!)
+            val deepLink = objectMapper.writeValueAsString(pushData)
+
+            val notification =
+                notificationService.createNotificationRecord(
+                    userId = user.id!!,
+                    title = templateType.titleTemplate,
+                    content = formatBody(templateType, user.nickname, transaction.counterpartName),
+                    category = templateType.toNotificationCategory(),
+                    deepLink = deepLink,
+                )
+
+            // 푸시 메시지 생성
+            val messages =
+                devices.mapNotNull { device ->
+                    device.expoToken?.let { token ->
+                        when (transaction.transactionType) {
+                            TransactionType.BORROW ->
+                                pushTemplateService.createTransactionCompleteBorrow(
+                                    expoToken = token,
+                                    counterpartName = transaction.counterpartName,
+                                    transactionId = transaction.id!!,
+                                    notificationId = notification.id,
+                                )
+                            TransactionType.LEND ->
+                                pushTemplateService.createTransactionCompleteLend(
+                                    expoToken = token,
+                                    nickname = user.nickname,
+                                    counterpartName = transaction.counterpartName,
+                                    transactionId = transaction.id!!,
+                                    notificationId = notification.id,
+                                )
+                        }
+                    }
+                }
+
+            if (messages.isNotEmpty()) {
+                val result = expoPushService.sendToMultipleDevices(devices, messages)
+                logger.info(
+                    "Transaction complete push sent for transaction {}: success={}, failure={}",
+                    transaction.id,
+                    result.successCount,
+                    result.failureCount,
+                )
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to send transaction complete push for transaction {}", transaction.id, e)
+        }
+    }
+
+    private fun formatBody(
+        templateType: PushTemplateType,
+        nickname: String,
+        counterpartName: String,
+    ): String {
+        return templateType.bodyTemplate
+            .replace("{nickname}", nickname)
+            .replace("{counterpartName}", counterpartName)
     }
 }

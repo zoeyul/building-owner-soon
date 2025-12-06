@@ -12,6 +12,7 @@ import java.util.Locale
  * 각 템플릿 타입에 맞는 푸시 메시지를 생성합니다
  */
 @Service
+@Suppress("TooManyFunctions")
 class PushTemplateService {
     private val numberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
 
@@ -234,6 +235,54 @@ class PushTemplateService {
             title = template.titleTemplate,
             body = body,
             data = PushData.forTransaction(transactionId),
+        )
+    }
+
+    /**
+     * 거래 완료 안내 (돈 갚기) 메시지 생성
+     * BORROW 타입 거래가 100% 완료되었을 때 발송
+     */
+    fun createTransactionCompleteBorrow(
+        expoToken: String,
+        counterpartName: String,
+        transactionId: Long,
+        notificationId: Long? = null,
+    ): ExpoPushMessage {
+        val template = PushTemplateType.TRANSACTION_COMPLETE_BORROW
+        val body =
+            template.bodyTemplate
+                .replace("{counterpartName}", counterpartName)
+
+        return ExpoPushMessage.createOptimized(
+            token = expoToken,
+            title = template.titleTemplate,
+            body = body,
+            data = PushData.forTransaction(transactionId, notificationId),
+        )
+    }
+
+    /**
+     * 거래 완료 안내 (돈 받기) 메시지 생성
+     * LEND 타입 거래가 100% 완료되었을 때 발송
+     */
+    fun createTransactionCompleteLend(
+        expoToken: String,
+        nickname: String,
+        counterpartName: String,
+        transactionId: Long,
+        notificationId: Long? = null,
+    ): ExpoPushMessage {
+        val template = PushTemplateType.TRANSACTION_COMPLETE_LEND
+        val body =
+            template.bodyTemplate
+                .replace("{nickname}", nickname)
+                .replace("{counterpartName}", counterpartName)
+
+        return ExpoPushMessage.createOptimized(
+            token = expoToken,
+            title = template.titleTemplate,
+            body = body,
+            data = PushData.forTransaction(transactionId, notificationId),
         )
     }
 
