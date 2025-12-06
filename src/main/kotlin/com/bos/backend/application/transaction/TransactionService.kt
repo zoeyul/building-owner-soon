@@ -493,7 +493,9 @@ class TransactionService(
         val transactionIds = transactions.mapNotNull { it.id }
 
         return allSchedules
+            .asSequence()
             .filter { it.transactionId in transactionIds }
+            .filter { it.status != RepaymentStatus.COMPLETED }
             .filter {
                 it.status == RepaymentStatus.IN_PROGRESS ||
                     (it.scheduledDate in today..twoDaysFromNow)
