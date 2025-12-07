@@ -11,7 +11,10 @@ interface AuthStrategy {
 
     suspend fun signUp(request: SignUpRequestDTO): AuthResult
 
-    suspend fun signIn(request: SignInRequestDTO): AuthResult
+    suspend fun signIn(
+        request: SignInRequestDTO,
+        skipTokenValidation: Boolean = false,
+    ): AuthResult
 }
 
 data class AuthResult(

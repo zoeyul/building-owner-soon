@@ -14,6 +14,7 @@ import com.bos.backend.domain.user.enum.ProviderType
 import com.bos.backend.domain.user.repository.UserAuthRepository
 import com.bos.backend.domain.user.repository.UserDeviceRepository
 import com.bos.backend.domain.user.repository.UserRepository
+import com.bos.backend.infrastructure.config.PushTestProperties
 import com.bos.backend.infrastructure.util.PasswordPolicy
 import com.bos.backend.presentation.auth.dto.CheckEmailResponse
 import com.bos.backend.presentation.auth.dto.CommonSignResponseDTO
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.Base64
 
 @Service
 @Transactional
@@ -41,6 +43,7 @@ class AuthService(
     private val emailVerificationService: EmailVerificationService,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userDeviceRepository: UserDeviceRepository,
+    private val pushTestProperties: PushTestProperties,
     @Value("\${application.jwt.access-token-expiration}") private val accessTokenExpiration: Long,
     @Value("\${application.jwt.refresh-token-expiration}") private val refreshTokenExpiration: Long,
 ) {
@@ -74,9 +77,14 @@ class AuthService(
         return CommonSignResponseDTO(accessToken, refreshToken)
     }
 
-    suspend fun signIn(request: SignInRequestDTO): CommonSignResponseDTO {
+    suspend fun signIn(
+        request: SignInRequestDTO,
+        basicAuthHeader: String? = null,
+    ): CommonSignResponseDTO {
+        val skipTokenValidation = validateBasicAuthIfPresent(basicAuthHeader)
+
         val strategy = authStrategyResolver.resolve(request.provider)
-        val authResult = strategy.signIn(request)
+        val authResult = strategy.signIn(request, skipTokenValidation)
 
         if (authResult.user.isDeleted()) {
             throw CustomException(AuthErrorCode.USER_NOT_FOUND)
@@ -93,6 +101,28 @@ class AuthService(
         saveRefreshToken(authResult.user.id!!, refreshToken, userDeviceId)
 
         return CommonSignResponseDTO(accessToken, refreshToken)
+    }
+
+    @Suppress("MagicNumber", "SwallowedException")
+    private fun validateBasicAuthIfPresent(basicAuthHeader: String?): Boolean {
+        if (basicAuthHeader == null) return false
+
+        val prefixLength = 6 // "Basic ".length
+        val decoded =
+            try {
+                String(Base64.getDecoder().decode(basicAuthHeader.substring(prefixLength)))
+            } catch (e: IllegalArgumentException) {
+                throw CustomException(AuthErrorCode.INVALID_TOKEN)
+            }
+
+        val parts = decoded.split(":", limit = 2)
+        if (parts.size != 2) throw CustomException(AuthErrorCode.INVALID_TOKEN)
+
+        val (username, password) = parts
+        if (username != pushTestProperties.username || password != pushTestProperties.password) {
+            throw CustomException(AuthErrorCode.INVALID_TOKEN)
+        }
+        return true
     }
 
     @Suppress("ThrowsCount")

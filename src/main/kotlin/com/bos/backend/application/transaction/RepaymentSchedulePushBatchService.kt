@@ -13,6 +13,7 @@ import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
 import com.bos.backend.domain.transaction.repository.TransactionRepository
 import com.bos.backend.domain.user.repository.UserDeviceRepository
 import com.bos.backend.domain.user.repository.UserRepository
+import com.bos.backend.infrastructure.persistence.RepaymentScheduleCustomRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -27,6 +28,7 @@ import java.util.Locale
 @Suppress("LongParameterList")
 class RepaymentSchedulePushBatchService(
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
+    private val repaymentScheduleCustomRepository: RepaymentScheduleCustomRepository,
     private val transactionRepository: TransactionRepository,
     private val userRepository: UserRepository,
     private val userDeviceRepository: UserDeviceRepository,
@@ -45,17 +47,24 @@ class RepaymentSchedulePushBatchService(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    suspend fun executePushNotificationBatch(): PushBatchResult {
+    suspend fun executePushNotificationBatch(
+        userId: Long? = null,
+        transactionId: Long? = null,
+    ): PushBatchResult {
         return try {
-            logger.info("Starting repayment push notification batch job")
+            logger.info(
+                "Starting repayment push notification batch job (userId={}, transactionId={})",
+                userId,
+                transactionId,
+            )
 
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val twoDaysLater = today.plusDays(2)
             val yesterday = today.minusDays(1)
 
-            val reminderCount = sendReminderPushes(twoDaysLater)
-            val todayCount = sendTodayPushes(today)
-            val overdueCount = sendOverduePushes(yesterday)
+            val reminderCount = sendReminderPushes(twoDaysLater, userId, transactionId)
+            val todayCount = sendTodayPushes(today, userId, transactionId)
+            val overdueCount = sendOverduePushes(yesterday, userId, transactionId)
 
             logger.info(
                 "Completed repayment push notification batch job. " +
@@ -83,9 +92,24 @@ class RepaymentSchedulePushBatchService(
         }
     }
 
-    suspend fun sendReminderPushes(targetDate: LocalDate): Int {
-        val schedules = repaymentScheduleRepository.findSchedulesForReminder(targetDate)
-        logger.info("Found {} schedules for reminder push (D-2, target date: {})", schedules.size, targetDate)
+    suspend fun sendReminderPushes(
+        targetDate: LocalDate,
+        userId: Long? = null,
+        transactionId: Long? = null,
+    ): Int {
+        val schedules =
+            if (userId != null || transactionId != null) {
+                repaymentScheduleCustomRepository.findSchedulesForReminderWithFilter(targetDate, userId, transactionId)
+            } else {
+                repaymentScheduleRepository.findSchedulesForReminder(targetDate)
+            }
+        logger.info(
+            "Found {} schedules for reminder push (D-2, target date: {}, userId={}, transactionId={})",
+            schedules.size,
+            targetDate,
+            userId,
+            transactionId,
+        )
 
         if (schedules.isEmpty()) {
             logger.info("No schedules found for reminder push")
@@ -104,18 +128,48 @@ class RepaymentSchedulePushBatchService(
         }
     }
 
-    suspend fun sendTodayPushes(today: LocalDate): Int {
-        val schedules = repaymentScheduleRepository.findSchedulesForToday(today)
-        logger.info("Found {} schedules for today push (D-Day, date: {})", schedules.size, today)
+    suspend fun sendTodayPushes(
+        today: LocalDate,
+        userId: Long? = null,
+        transactionId: Long? = null,
+    ): Int {
+        val schedules =
+            if (userId != null || transactionId != null) {
+                repaymentScheduleCustomRepository.findSchedulesForTodayWithFilter(today, userId, transactionId)
+            } else {
+                repaymentScheduleRepository.findSchedulesForToday(today)
+            }
+        logger.info(
+            "Found {} schedules for today push (D-Day, date: {}, userId={}, transactionId={})",
+            schedules.size,
+            today,
+            userId,
+            transactionId,
+        )
 
         return schedules.count { schedule ->
             sendPushForSchedule(schedule, PushType.TODAY)
         }
     }
 
-    suspend fun sendOverduePushes(yesterday: LocalDate): Int {
-        val schedules = repaymentScheduleRepository.findOverdueSchedules(yesterday)
-        logger.info("Found {} overdue schedules for overdue push (D+1, scheduled_date: {})", schedules.size, yesterday)
+    suspend fun sendOverduePushes(
+        yesterday: LocalDate,
+        userId: Long? = null,
+        transactionId: Long? = null,
+    ): Int {
+        val schedules =
+            if (userId != null || transactionId != null) {
+                repaymentScheduleCustomRepository.findOverdueSchedulesWithFilter(yesterday, userId, transactionId)
+            } else {
+                repaymentScheduleRepository.findOverdueSchedules(yesterday)
+            }
+        logger.info(
+            "Found {} overdue schedules for overdue push (D+1, scheduled_date: {}, userId={}, transactionId={})",
+            schedules.size,
+            yesterday,
+            userId,
+            transactionId,
+        )
 
         return schedules.count { schedule ->
             sendPushForSchedule(schedule, PushType.OVERDUE)

@@ -239,7 +239,7 @@ class RepaymentScheduleService(
                 .filter { it.status == RepaymentStatus.COMPLETED }
                 .sumOf { it.actualAmount ?: java.math.BigDecimal.ZERO }
 
-        val remainingAmount = transaction.totalAmount - completedAmount
+        val remainingAmount = transaction.totalAmount - transaction.initialCompletedAmount - completedAmount
 
         val pendingSchedules =
             allSchedules

@@ -66,13 +66,18 @@ class KakaoAuthStrategy(
         return AuthResult(user, userAuth)
     }
 
-    override suspend fun signIn(request: SignInRequestDTO): AuthResult {
+    override suspend fun signIn(
+        request: SignInRequestDTO,
+        skipTokenValidation: Boolean,
+    ): AuthResult {
         requireNotNull(request.providerId) { "Provider ID is required for Kakao signin" }
-        requireNotNull(request.providerAccessToken) { "Provider access token is required for Kakao signin" }
 
-        // 카카오 토큰 검증
-        require(validateProviderToken(request.providerAccessToken, request.providerId)) {
-            "Invalid Kakao token or user info mismatch"
+        // Basic Auth가 없으면 카카오 토큰 검증 수행
+        if (!skipTokenValidation) {
+            requireNotNull(request.providerAccessToken) { "Provider access token is required for Kakao signin" }
+            require(validateProviderToken(request.providerAccessToken, request.providerId)) {
+                "Invalid Kakao token or user info mismatch"
+            }
         }
 
         val userAuth =

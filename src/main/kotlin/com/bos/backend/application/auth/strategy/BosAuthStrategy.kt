@@ -58,16 +58,22 @@ class BosAuthStrategy(
         return AuthResult(user, userAuth)
     }
 
-    override suspend fun signIn(request: SignInRequestDTO): AuthResult {
+    override suspend fun signIn(
+        request: SignInRequestDTO,
+        skipTokenValidation: Boolean,
+    ): AuthResult {
         requireNotNull(request.email) { "Email is required for BOS signin" }
-        requireNotNull(request.password) { "Password is required for BOS signin" }
 
         val userAuth =
             userAuthRepository.findByEmailAndProviderType(request.email, providerType.value)
                 ?: throw CustomException(AuthErrorCode.USER_NOT_REGISTERED)
 
-        if (userAuth.passwordHash != request.password) {
-            throw CustomException(AuthErrorCode.PASSWORD_MISMATCH)
+        // Basic Auth가 없으면 비밀번호 검증 수행
+        if (!skipTokenValidation) {
+            requireNotNull(request.password) { "Password is required for BOS signin" }
+            if (userAuth.passwordHash != request.password) {
+                throw CustomException(AuthErrorCode.PASSWORD_MISMATCH)
+            }
         }
 
         val user = checkNotNull(userRepository.findById(userAuth.userId)) { "User not found" }

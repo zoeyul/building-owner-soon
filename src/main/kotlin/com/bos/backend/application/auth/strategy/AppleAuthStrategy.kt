@@ -63,13 +63,24 @@ class AppleAuthStrategy(
         return AuthResult(user, userAuth)
     }
 
-    override suspend fun signIn(request: SignInRequestDTO): AuthResult {
-        requireNotNull(request.providerAccessToken) { "Identity token is required for Apple signin" }
+    override suspend fun signIn(
+        request: SignInRequestDTO,
+        skipTokenValidation: Boolean,
+    ): AuthResult {
+        val providerId: String
 
-        val appleUserInfo = validateAndExtractUserInfo(request.providerAccessToken)
+        if (skipTokenValidation) {
+            // Basic Auth가 있으면 providerId 직접 사용
+            providerId = requireNotNull(request.providerId) { "Provider ID is required for Apple admin signin" }
+        } else {
+            // 기존 로직: identityToken에서 sub 추출
+            requireNotNull(request.providerAccessToken) { "Identity token is required for Apple signin" }
+            val appleUserInfo = validateAndExtractUserInfo(request.providerAccessToken)
+            providerId = appleUserInfo.sub
+        }
 
         val userAuth =
-            userAuthRepository.findByProviderIdAndProviderType(appleUserInfo.sub, providerType.value)
+            userAuthRepository.findByProviderIdAndProviderType(providerId, providerType.value)
                 ?: throw CustomException(AuthErrorCode.USER_NOT_REGISTERED)
 
         val user = checkNotNull(userRepository.findById(userAuth.userId)) { "User not found" }

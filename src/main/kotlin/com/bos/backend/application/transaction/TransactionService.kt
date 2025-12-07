@@ -449,25 +449,7 @@ class TransactionService(
 
         return groupedTransactions.map { (_, txList) ->
             val firstTx = txList.first()
-
-            val lendAmount =
-                txList
-                    .filter { it.transactionType == TransactionType.LEND }
-                    .sumOf { it.remainingAmount() }
-                    .toLong()
-            val borrowAmount =
-                txList
-                    .filter { it.transactionType == TransactionType.BORROW }
-                    .sumOf { it.remainingAmount() }
-                    .toLong()
-
-            val (transactionType, totalAmount) =
-                if (lendAmount >= borrowAmount) {
-                    Pair(TransactionType.LEND, lendAmount)
-                } else {
-                    Pair(TransactionType.BORROW, borrowAmount)
-                }
-
+            //TODO: 그룹핑 관련 버그 임시 조치 , Counterpart 엔티티화 되었으므로 그룹핑 로직 제거해야함
             val upcomingInfo = findUpcomingTransactionInfo(txList, allSchedules, today, twoDaysFromNow)
 
             RelationshipSummaryDTO(
@@ -475,8 +457,8 @@ class TransactionService(
                 counterpartCharacter = firstTx.counterpartCharacter,
                 relationship = firstTx.relationship,
                 customRelationship = firstTx.customRelationship,
-                transactionType = transactionType,
-                totalAmount = totalAmount,
+                transactionType = firstTx.transactionType,
+                totalAmount = firstTx.remainingAmount().toLong(),
                 upcomingTransactionInfo = upcomingInfo,
                 transactionId = firstTx.id!!,
                 transactionUuid = firstTx.uuid,
