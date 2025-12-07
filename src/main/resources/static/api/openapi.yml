@@ -1151,53 +1151,6 @@ paths:
           description: 거래내역을 찾을 수 없음
         "500":
           $ref: "#/components/responses/InternalServerErrorResponseSpec"
-  /transactions/{transactionId}/schedules/{scheduleId}/repayments:
-    post:
-      tags:
-        - transaction
-      operationId: addRepayment
-      summary: "상환 처리"
-      description: |-
-        특정 거래내역의 특정 회차에 대한 상환을 처리합니다.
-        - 본인이 생성한 거래내역에만 상환 처리를 할 수 있습니다.
-        - 상환 처리는 실제로 돈을 갚았을 때 등록합니다.
-        - scheduleId는 상환관리 조회 API에서 획득할 수 있습니다.
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: transactionId
-          in: path
-          description: 거래 ID
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: scheduleId
-          in: path
-          description: 상환 스케줄 ID
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateRepaymentRequest"
-      responses:
-        "201":
-          description: 상환 처리 성공
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RepaymentScheduleItem"
-        "400":
-          $ref: "#/components/responses/BadRequestResponseSpec"
-        "401":
-          description: 인증 실패
-        "404":
-          description: 거래내역을 찾을 수 없음
   /transactions/{transactionId}/repayments:
     post:
       tags:
@@ -1210,15 +1163,17 @@ paths:
         ## 상환 타입별 동작
 
         ### FLEXIBLE (유연한 상환)
+        - `scheduleId`: 불필요 (null 허용)
         - 상환 시점에 스케줄이 생성되며, 즉시 완료 상태(COMPLETED)로 처리됩니다.
         - 상환 금액은 잔여 금액을 초과할 수 없습니다.
-        - `repaymentDate`: 실제 상환한 날짜 (자유롭게 설정 가능)
 
         ### DIVIDED_BY_PERIOD / FIXED_MONTHLY (정기 상환)
-        - `repaymentDate`에 해당하는 스케줄을 조회하여 상환 처리합니다.
-        - 실제 상환 금액이 예정 금액과 다를 경우, 남은 스케줄의 금액이 자동으로 재연산됩니다.
-        - 재연산 방식: 남은 금액을 미완료 스케줄에 균등 분배 (마지막 스케줄에 나머지 할당)
-        - `repaymentDate`: 기존에 생성된 스케줄의 날짜여야 합니다.
+        - `scheduleId`: 필수 (상환관리 조회 API에서 획득)
+        - 상환 가능 상태: `IN_PROGRESS`, `OVERDUE`만 상환 가능
+        - `SCHEDULED` 상태는 아직 상환 기간이 아니므로 상환 불가
+        - 부분 상환: 남은 금액을 미완료 스케줄에 균등 재분배 (100원 단위 절삭, 마지막 스케줄에 나머지)
+        - 초과 상환: 남은 스케줄 금액이 감소
+        - 전체 상환 (totalAmount 이상): 남은 스케줄 모두 자동 완료 처리, 거래 완료
 
         ## 요청 조건
         - 본인이 생성한 거래내역에만 상환 처리를 할 수 있습니다.
@@ -3379,6 +3334,15 @@ components:
         - repaymentDate
         - repaymentAmount
       properties:
+        scheduleId:
+          type: integer
+          format: int64
+          description: |
+            상환할 스케줄 ID.
+            - FLEXIBLE 타입: 불필요 (null 허용)
+            - DIVIDED_BY_PERIOD, FIXED_MONTHLY 타입: 필수
+          example: 1
+          nullable: true
         repaymentDate:
           type: string
           format: date

@@ -77,21 +77,6 @@ class TransactionController(
         @PathVariable id: Long,
     ): RepaymentManagementResponseDTO = repaymentScheduleService.getRepaymentManagement(userId.toLong(), id)
 
-    @PostMapping("/{transactionId}/schedules/{scheduleId}/repayments")
-    @ResponseStatus(HttpStatus.CREATED)
-    suspend fun addRepayment(
-        @AuthenticationPrincipal userId: String,
-        @PathVariable transactionId: Long,
-        @PathVariable scheduleId: Long,
-        @Valid @RequestBody createRepaymentRequestDTO: CreateRepaymentRequestDTO,
-    ): RepaymentScheduleItemDTO =
-        repaymentScheduleService.addRepayment(
-            userId.toLong(),
-            transactionId,
-            scheduleId,
-            createRepaymentRequestDTO,
-        )
-
     @PostMapping("/{transactionId}/repayments")
     @ResponseStatus(HttpStatus.CREATED)
     suspend fun processRepayment(

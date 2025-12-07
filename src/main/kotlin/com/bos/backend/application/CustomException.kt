@@ -51,4 +51,12 @@ enum class CommonErrorCode(
         "이미 완료된 상환입니다.",
         HttpStatus.CONFLICT,
     ),
+    REPAYMENT_NOT_ALLOWED(
+        "상환 가능한 상태가 아닙니다. (IN_PROGRESS 또는 OVERDUE 상태만 상환 가능)",
+        HttpStatus.BAD_REQUEST,
+    ),
+    SCHEDULE_ID_REQUIRED(
+        "스케줄 ID가 필요합니다.",
+        HttpStatus.BAD_REQUEST,
+    ),
 }

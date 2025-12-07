@@ -5,6 +5,7 @@ import com.bos.backend.application.CustomException
 import com.bos.backend.application.notification.NotificationService
 import com.bos.backend.application.push.ExpoPushService
 import com.bos.backend.application.push.PushTemplateService
+import com.bos.backend.application.transaction.strategy.RepaymentStrategyFactory
 import com.bos.backend.domain.push.PushData
 import com.bos.backend.domain.push.PushTemplateType
 import com.bos.backend.domain.transaction.entity.RepaymentSchedule
@@ -23,10 +24,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 
 @Service
-@Suppress("LongParameterList", "TooManyFunctions")
+@Suppress("LongParameterList")
 class RepaymentScheduleService(
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
     private val transactionRepository: TransactionRepository,
@@ -36,12 +36,9 @@ class RepaymentScheduleService(
     private val userDeviceRepository: UserDeviceRepository,
     private val userRepository: UserRepository,
     private val objectMapper: ObjectMapper,
+    private val repaymentStrategyFactory: RepaymentStrategyFactory,
 ) {
     private val logger = LoggerFactory.getLogger(RepaymentScheduleService::class.java)
-
-    companion object {
-        private const val ROUNDING_UNIT = 100 // 100원 단위 절삭을 위한 상수
-    }
 
     suspend fun getRepaymentManagement(
         userId: Long,
@@ -95,60 +92,43 @@ class RepaymentScheduleService(
                 )
             }.sortedBy { it.displayDate }
 
-    suspend fun addRepayment(
+    suspend fun processRepayment(
         userId: Long,
         transactionId: Long,
-        scheduleId: Long,
-        createRepaymentRequestDTO: CreateRepaymentRequestDTO,
+        request: CreateRepaymentRequestDTO,
     ): RepaymentScheduleItemDTO {
-        val schedule =
-            repaymentScheduleRepository.findById(scheduleId)
-                ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        val transaction = findAndValidateTransaction(userId, transactionId)
+        validateScheduleIdRequirement(transaction.repaymentType, request)
 
-        val transaction =
-            transactionRepository.findById(transactionId)
-                ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        val allSchedules = repaymentScheduleRepository.findByTransactionId(transactionId)
 
-        validateRepaymentRequest(schedule, transaction, transactionId, userId)
+        val strategy = repaymentStrategyFactory.getStrategy(transaction.repaymentType)
+        val result = strategy.processRepayment(transaction, request, allSchedules)
 
-        if (schedule.status == RepaymentStatus.COMPLETED) {
-            throw CustomException(CommonErrorCode.REPAYMENT_ALREADY_COMPLETED)
+        val savedSchedule = repaymentScheduleRepository.save(result.completedSchedule)
+
+        if (result.adjustedSchedules.isNotEmpty()) {
+            repaymentScheduleRepository.saveAll(result.adjustedSchedules)
         }
 
-        val updatedSchedule =
-            schedule.copy(
-                status = RepaymentStatus.COMPLETED,
-                actualDate = createRepaymentRequestDTO.repaymentDate,
-                actualAmount = createRepaymentRequestDTO.repaymentAmount,
-                updatedAt = java.time.Instant.now(),
-            )
+        if (result.autoCompletedSchedules.isNotEmpty()) {
+            repaymentScheduleRepository.saveAll(result.autoCompletedSchedules)
+        }
 
-        val savedSchedule = repaymentScheduleRepository.save(updatedSchedule)
+        val updatedTransaction = transaction.updateCompletedAmount(result.newCompletedAmount)
+        transactionRepository.save(updatedTransaction)
 
-        updateTransactionCompletedAmount(transaction, transactionId)
+        if (result.isTransactionCompleted) {
+            sendTransactionCompletePush(updatedTransaction)
+        }
 
         return generateRepaymentItems(listOf(savedSchedule)).first()
     }
 
-    private fun validateRepaymentRequest(
-        schedule: RepaymentSchedule,
-        transaction: Transaction,
-        transactionId: Long,
-        userId: Long,
-    ) {
-        if (schedule.transactionId != transactionId ||
-            transaction.repaymentType == RepaymentType.FLEXIBLE ||
-            transaction.userId != userId
-        ) {
-            throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
-        }
-    }
-
-    suspend fun processRepayment(
+    private suspend fun findAndValidateTransaction(
         userId: Long,
         transactionId: Long,
-        createRepaymentRequestDTO: CreateRepaymentRequestDTO,
-    ): RepaymentScheduleItemDTO {
+    ): Transaction {
         val transaction =
             transactionRepository.findById(transactionId)
                 ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
@@ -157,148 +137,15 @@ class RepaymentScheduleService(
             throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
         }
 
-        return when (transaction.repaymentType) {
-            RepaymentType.FLEXIBLE -> processFlexibleRepayment(transaction, transactionId, createRepaymentRequestDTO)
-            RepaymentType.DIVIDED_BY_PERIOD,
-            RepaymentType.FIXED_MONTHLY,
-            -> processScheduledRepayment(transaction, transactionId, createRepaymentRequestDTO)
-        }
+        return transaction
     }
 
-    private suspend fun processFlexibleRepayment(
-        transaction: Transaction,
-        transactionId: Long,
-        createRepaymentRequestDTO: CreateRepaymentRequestDTO,
-    ): RepaymentScheduleItemDTO {
-        if (createRepaymentRequestDTO.repaymentAmount > transaction.remainingAmount()) {
-            throw CustomException(CommonErrorCode.AMOUNT_EXCEEDS_REMAINING)
-        }
-
-        val newSchedule =
-            RepaymentSchedule(
-                transactionId = transactionId,
-                scheduledDate = createRepaymentRequestDTO.repaymentDate,
-                scheduledAmount = createRepaymentRequestDTO.repaymentAmount,
-                actualDate = createRepaymentRequestDTO.repaymentDate,
-                actualAmount = createRepaymentRequestDTO.repaymentAmount,
-                status = RepaymentStatus.COMPLETED,
-            )
-
-        val savedSchedule = repaymentScheduleRepository.save(newSchedule)
-        updateTransactionCompletedAmount(transaction, transactionId)
-
-        return generateRepaymentItems(listOf(savedSchedule)).first()
-    }
-
-    private suspend fun processScheduledRepayment(
-        transaction: Transaction,
-        transactionId: Long,
-        createRepaymentRequestDTO: CreateRepaymentRequestDTO,
-    ): RepaymentScheduleItemDTO {
-        val schedule =
-            repaymentScheduleRepository.findByTransactionIdAndScheduledDate(
-                transactionId,
-                createRepaymentRequestDTO.repaymentDate,
-            ) ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
-
-        if (schedule.status == RepaymentStatus.COMPLETED) {
-            throw CustomException(CommonErrorCode.REPAYMENT_ALREADY_COMPLETED)
-        }
-
-        val updatedSchedule =
-            schedule.copy(
-                status = RepaymentStatus.COMPLETED,
-                actualDate = createRepaymentRequestDTO.repaymentDate,
-                actualAmount = createRepaymentRequestDTO.repaymentAmount,
-                updatedAt = java.time.Instant.now(),
-            )
-
-        val savedSchedule = repaymentScheduleRepository.save(updatedSchedule)
-
-        if (createRepaymentRequestDTO.repaymentAmount != schedule.scheduledAmount) {
-            recalculateRemainingSchedules(transaction, transactionId, schedule.scheduledDate)
-        }
-
-        updateTransactionCompletedAmount(transaction, transactionId)
-
-        return generateRepaymentItems(listOf(savedSchedule)).first()
-    }
-
-    private suspend fun recalculateRemainingSchedules(
-        transaction: Transaction,
-        transactionId: Long,
-        completedScheduleDate: java.time.LocalDate,
+    private fun validateScheduleIdRequirement(
+        repaymentType: RepaymentType,
+        request: CreateRepaymentRequestDTO,
     ) {
-        val allSchedules =
-            repaymentScheduleRepository
-                .findByTransactionId(transactionId)
-                .sortedBy { it.scheduledDate }
-
-        val completedAmount =
-            allSchedules
-                .filter { it.status == RepaymentStatus.COMPLETED }
-                .sumOf { it.actualAmount ?: java.math.BigDecimal.ZERO }
-
-        val remainingAmount = transaction.totalAmount - transaction.initialCompletedAmount - completedAmount
-
-        val pendingSchedules =
-            allSchedules
-                .filter { it.status != RepaymentStatus.COMPLETED && it.scheduledDate > completedScheduleDate }
-                .sortedBy { it.scheduledDate }
-
-        if (pendingSchedules.isEmpty() || remainingAmount <= java.math.BigDecimal.ZERO) {
-            return
-        }
-
-        // 100원 단위 절삭 적용 (DIVIDED_BY_PERIOD와 동일한 로직)
-        // 재계산 시에도 일관된 금액 계산 정책 적용
-        val amountInHundreds = remainingAmount.divide(java.math.BigDecimal(ROUNDING_UNIT)).toBigInteger()
-        val baseInHundreds = amountInHundreds.divide(java.math.BigInteger.valueOf(pendingSchedules.size.toLong()))
-        val baseAmount =
-            java.math.BigDecimal(
-                baseInHundreds.multiply(java.math.BigInteger.valueOf(ROUNDING_UNIT.toLong())),
-            )
-
-        val totalBaseAmount = baseAmount.multiply(java.math.BigDecimal(pendingSchedules.size))
-        val remainder = remainingAmount.subtract(totalBaseAmount)
-
-        val updatedSchedules =
-            pendingSchedules.mapIndexed { index, schedule ->
-                val newAmount =
-                    if (index == pendingSchedules.size - 1) {
-                        // 마지막 납부는 기본 금액 + 나머지 금액
-                        baseAmount.add(remainder)
-                    } else {
-                        baseAmount
-                    }
-
-                schedule.copy(
-                    scheduledAmount = newAmount,
-                    updatedAt = java.time.Instant.now(),
-                )
-            }
-
-        repaymentScheduleRepository.saveAll(updatedSchedules)
-    }
-
-    private suspend fun updateTransactionCompletedAmount(
-        transaction: Transaction,
-        transactionId: Long,
-    ) {
-        val allSchedules = repaymentScheduleRepository.findByTransactionId(transactionId)
-        val schedulesCompletedAmount =
-            allSchedules
-                .filter { it.status == RepaymentStatus.COMPLETED }
-                .sumOf { it.actualAmount ?: java.math.BigDecimal.ZERO }
-
-        // 초기 completedAmount (Transaction 생성 시 설정된 값) + 스케줄 상환 금액
-        val totalCompletedAmount = transaction.initialCompletedAmount + schedulesCompletedAmount
-        val updatedTransaction = transaction.updateCompletedAmount(totalCompletedAmount)
-        transactionRepository.save(updatedTransaction)
-
-        // 거래 완료 체크 및 푸시/알림 전송
-        if (updatedTransaction.remainingAmount().compareTo(BigDecimal.ZERO) == 0) {
-            sendTransactionCompletePush(updatedTransaction)
+        if (repaymentType != RepaymentType.FLEXIBLE && request.scheduleId == null) {
+            throw CustomException(CommonErrorCode.SCHEDULE_ID_REQUIRED)
         }
     }
 

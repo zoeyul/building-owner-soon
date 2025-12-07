@@ -153,10 +153,6 @@ class TransactionService(
         )
     }
 
-//    private suspend fun getTransactionById(transactionId: Long): Transaction =
-//        transactionRepository.findById(transactionId)
-//            ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
-
     private suspend fun getTransactionByUuid(uuid: String): Transaction =
         transactionRepository.findByUuid(uuid)
             ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
@@ -449,7 +445,7 @@ class TransactionService(
 
         return groupedTransactions.map { (_, txList) ->
             val firstTx = txList.first()
-            //TODO: 그룹핑 관련 버그 임시 조치 , Counterpart 엔티티화 되었으므로 그룹핑 로직 제거해야함
+            // TODO: 그룹핑 관련 버그 임시 조치 , Counterpart 엔티티화 되었으므로 그룹핑 로직 제거해야함
             val upcomingInfo = findUpcomingTransactionInfo(txList, allSchedules, today, twoDaysFromNow)
 
             RelationshipSummaryDTO(
