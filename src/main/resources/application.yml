@@ -37,8 +37,8 @@ spring:
 application:
   jwt:
     secret: ${jwt-secret}
-    access-token-expiration: 3600 # 60 * 60 (1 hour)
-    refresh-token-expiration: 604800 # 3600 * 24 * 7 (7 days)
+    access-token-expiration: ${access-token-expiration:3600}
+    refresh-token-expiration: ${refresh-token-expiration:604800}
 
 app:
   s3:
