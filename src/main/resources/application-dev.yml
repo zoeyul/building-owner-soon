@@ -1,0 +1,9 @@
+server:
+  port: 9000
+
+logging:
+  level:
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.springframework.transaction: DEBUG
+    io.r2dbc: DEBUG

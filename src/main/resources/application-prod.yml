@@ -1,0 +1,9 @@
+server:
+  port: 8000
+
+logging:
+  level:
+    org.springframework.data.r2dbc: INFO
+    org.springframework.jdbc: INFO
+    org.springframework.transaction: INFO
+    io.r2dbc: INFO

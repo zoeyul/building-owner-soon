@@ -7,28 +7,29 @@ on:
         description: 'Artifact version to deploy (e.g., develop-a1b2c3d4, v1.0.0)'
         required: true
         type: string
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
       dry_run:
         description: 'Dry run (validate deployment without executing)'
         required: false
         default: false
         type: boolean
-      # TODO: 여러 환경 구축되면 사용
-      # environment:
-      #   description: 'Deployment environment'
-      #   required: true
-      #   default: 'staging'
-      #   type: choice
-      #   options:
-      #     - staging
-      #     - production
   repository_dispatch:
     types: [deploy-ready]
+
+env:
+  PROD_PORT: 8000
+  DEV_PORT: 9000
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # TODO: Add environment protection when multi-environment setup is needed
-    # environment: ${{ inputs.environment || github.event.client_payload.environment || 'production' }}
 
     steps:
       - name: Set Variables
@@ -38,9 +39,25 @@ jobs:
           if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
             echo "ARTIFACT_VERSION=${{ github.event.client_payload.artifact_version }}" >> $GITHUB_OUTPUT
             echo "DRY_RUN=false" >> $GITHUB_OUTPUT
+            echo "ENVIRONMENT=${{ github.event.client_payload.environment || 'prod' }}" >> $GITHUB_OUTPUT
           else
             echo "ARTIFACT_VERSION=${{ inputs.artifact_version }}" >> $GITHUB_OUTPUT
             echo "DRY_RUN=${{ inputs.dry_run }}" >> $GITHUB_OUTPUT
+            echo "ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set Environment-specific Variables
+        id: env_vars
+        run: |
+          ENV="${{ steps.vars.outputs.ENVIRONMENT }}"
+          if [[ "$ENV" == "prod" ]]; then
+            echo "SERVICE_NAME=bos-backend-prod" >> $GITHUB_OUTPUT
+            echo "JAR_NAME=bos-backend-prod.jar" >> $GITHUB_OUTPUT
+            echo "PORT=${{ env.PROD_PORT }}" >> $GITHUB_OUTPUT
+          else
+            echo "SERVICE_NAME=bos-backend-dev" >> $GITHUB_OUTPUT
+            echo "JAR_NAME=bos-backend-dev.jar" >> $GITHUB_OUTPUT
+            echo "PORT=${{ env.DEV_PORT }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Checkout source code
@@ -59,10 +76,10 @@ jobs:
           echo "Checking artifact: $ARTIFACT_PATH"
 
           if aws s3 ls "$ARTIFACT_PATH" >/dev/null 2>&1; then
-            echo "✅ Artifact found: $ARTIFACT_PATH"
+            echo "Artifact found: $ARTIFACT_PATH"
             echo "ARTIFACT_EXISTS=true" >> $GITHUB_ENV
           else
-            echo "❌ Artifact not found: $ARTIFACT_PATH"
+            echo "Artifact not found: $ARTIFACT_PATH"
             echo "ARTIFACT_EXISTS=false" >> $GITHUB_ENV
             exit 1
           fi
@@ -81,10 +98,13 @@ jobs:
       - name: Dry Run Validation
         if: steps.vars.outputs.DRY_RUN == 'true'
         run: |
-          echo "🔍 DRY RUN MODE - Validation Only"
+          echo "DRY RUN MODE - Validation Only"
           echo "Artifact: bos-backend-${{ steps.vars.outputs.ARTIFACT_VERSION }}.jar"
+          echo "Environment: ${{ steps.vars.outputs.ENVIRONMENT }}"
+          echo "Service: ${{ steps.env_vars.outputs.SERVICE_NAME }}"
+          echo "Port: ${{ steps.env_vars.outputs.PORT }}"
           echo "Target Host: ${{ secrets.EC2_HOST }}"
-          echo "✅ All validations passed - deployment would succeed"
+          echo "All validations passed - deployment would succeed"
 
       - name: Deploy to EC2
         if: steps.vars.outputs.DRY_RUN == 'false'
@@ -93,122 +113,131 @@ jobs:
           HOST: ${{ secrets.EC2_HOST }}
           USER: ${{ secrets.EC2_USER }}
           ARTIFACT_VERSION: ${{ steps.vars.outputs.ARTIFACT_VERSION }}
+          ENVIRONMENT: ${{ steps.vars.outputs.ENVIRONMENT }}
+          SERVICE_NAME: ${{ steps.env_vars.outputs.SERVICE_NAME }}
+          JAR_NAME: ${{ steps.env_vars.outputs.JAR_NAME }}
+          PORT: ${{ steps.env_vars.outputs.PORT }}
         run: |
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
 
-          echo "🚀 Starting deployment..."
+          echo "Starting deployment to $ENVIRONMENT environment..."
+          echo "Service: $SERVICE_NAME"
+          echo "JAR: $JAR_NAME"
+          echo "Port: $PORT"
 
           # Upload new JAR file
           scp -i private_key.pem -o StrictHostKeyChecking=no \
             artifacts/bos-backend-$ARTIFACT_VERSION.jar \
-            $USER@$HOST:/home/$USER/bos-backend.jar
+            $USER@$HOST:/home/$USER/$JAR_NAME
 
-          # Simple deployment strategy
+          # Deploy using systemd
           ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST << EOF
             set -e
 
-            # Kill existing process
-            echo "⏹️  Stopping existing application..."
-            pkill -f 'java.*bos-backend' || echo "No existing process found"
-            sleep 5
+            # Ensure logs directory exists
+            mkdir -p /home/$USER/logs
 
-            # Start new process
-            echo "🚀 Starting new application..."
-            nohup java -jar \
-              -Xms512m -Xmx1024m \
-              /home/$USER/bos-backend.jar \
-              > logs/bos-backend-$ARTIFACT_VERSION.log 2>&1 &
-
-            # TODO: Add profile-specific startup when multi-environment setup is needed
-            # -Dspring.profiles.active=$ENVIRONMENT \
-
-            NEW_PID=\$!
-            echo "✅ Started new process (PID: \$NEW_PID)"
+            # Restart the service
+            echo "Restarting $SERVICE_NAME service..."
+            sudo systemctl restart $SERVICE_NAME
 
             # Wait for application to start
-            echo "⏳ Waiting for application to start..."
+            echo "Waiting for application to start..."
             sleep 30
 
             # Health check
             for i in {1..12}; do
-              if curl -f http://localhost:8000/actuator/health >/dev/null 2>&1; then
-                echo "✅ Application health check passed"
+              if curl -f http://localhost:$PORT/actuator/health >/dev/null 2>&1; then
+                echo "Application health check passed"
                 exit 0
               fi
-              echo "⏳ Health check attempt \$i/12 failed, retrying in 10s..."
+              echo "Health check attempt \$i/12 failed, retrying in 10s..."
               sleep 10
             done
 
-            echo "❌ Health check failed after 2 minutes"
+            echo "Health check failed after 2 minutes"
+            # Show recent logs for debugging
+            echo "Recent logs:"
+            sudo journalctl -u $SERVICE_NAME -n 50 --no-pager || true
             exit 1
           EOF
 
-          echo "✅ Deployment completed successfully"
+          echo "Deployment completed successfully"
 
       - name: External Health Check
         id: external_health_check
         if: steps.vars.outputs.DRY_RUN == 'false'
         env:
-          HEALTH_CHECK_URL: ${{ secrets.HEALTH_CHECK_URL || 'http://54.180.123.147:8000/actuator/health' }}
+          PORT: ${{ steps.env_vars.outputs.PORT }}
+          HOST: ${{ secrets.EC2_HOST }}
         run: |
-          echo "🔍 Performing external health check..."
+          HEALTH_CHECK_URL="http://$HOST:$PORT/actuator/health"
+          echo "Performing external health check..."
           echo "Health check URL: $HEALTH_CHECK_URL"
 
           # Wait a bit more for external access to be ready
-          echo "⏳ Waiting for external connectivity..."
+          echo "Waiting for external connectivity..."
           sleep 15
 
           success=false
           for i in {1..6}; do
-            echo "🔍 External health check attempt $i/6..."
+            echo "External health check attempt $i/6..."
             if curl -f -s --max-time 10 "$HEALTH_CHECK_URL" > /dev/null; then
-              echo "✅ External health check passed!"
+              echo "External health check passed!"
               success=true
               break
             else
-              echo "⏳ External health check failed, retrying in 30 seconds..."
+              echo "External health check failed, retrying in 30 seconds..."
               sleep 30
             fi
           done
 
           if [ "$success" = "true" ]; then
             echo "health_status=success" >> $GITHUB_OUTPUT
-            echo "✅ Application is healthy and accessible externally"
+            echo "Application is healthy and accessible externally"
           else
             echo "health_status=failed" >> $GITHUB_OUTPUT
-            echo "❌ External health check failed - application may not be accessible"
+            echo "External health check failed - application may not be accessible"
             # Don't fail the deployment, just warn
-            echo "⚠️ Deployment completed but health check failed"
+            echo "Deployment completed but health check failed"
           fi
 
       - name: Discord Deployment Notification
         if: always()
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ENVIRONMENT: ${{ steps.vars.outputs.ENVIRONMENT }}
         run: |
+          ENV_EMOJI=""
+          if [ "$ENVIRONMENT" == "prod" ]; then
+            ENV_EMOJI="[PROD]"
+          else
+            ENV_EMOJI="[DEV]"
+          fi
+
           if [ "${{ job.status }}" == "success" ]; then
             COLOR=3066993
             if [ "${{ steps.vars.outputs.DRY_RUN }}" == "true" ]; then
-              TITLE="🔍 Deployment Dry Run Completed"
+              TITLE="$ENV_EMOJI Deployment Dry Run Completed"
               STATUS_TEXT="Validation successful - ready for actual deployment"
             else
-              TITLE="✅ Deployment Completed"
+              TITLE="$ENV_EMOJI Deployment Completed"
               STATUS_TEXT="Successfully deployed"
             fi
           else
             COLOR=15158332
-            TITLE="❌ Deployment Failed"
+            TITLE="$ENV_EMOJI Deployment Failed"
             STATUS_TEXT="Deployment failed"
           fi
 
-          MIGRATION_STATUS="🔄 Migrations run on startup"
+          MIGRATION_STATUS="Migrations run on startup"
 
-          HEALTH_STATUS="✅ Healthy"
+          HEALTH_STATUS="Healthy"
           if [ "${{ steps.external_health_check.outputs.health_status }}" == "failed" ]; then
-            HEALTH_STATUS="⚠️ Health check failed"
+            HEALTH_STATUS="Health check failed"
           elif [ "${{ steps.vars.outputs.DRY_RUN }}" == "true" ]; then
-            HEALTH_STATUS="➖ Skipped (dry run)"
+            HEALTH_STATUS="Skipped (dry run)"
           fi
 
           curl -H "Content-Type: application/json" \
@@ -217,7 +246,9 @@ jobs:
               \"title\": \"$TITLE\",
               \"color\": $COLOR,
               \"fields\": [
+                {\"name\": \"Environment\", \"value\": \"${{ steps.vars.outputs.ENVIRONMENT }}\", \"inline\": true},
                 {\"name\": \"Version\", \"value\": \"${{ steps.vars.outputs.ARTIFACT_VERSION }}\", \"inline\": true},
+                {\"name\": \"Port\", \"value\": \"${{ steps.env_vars.outputs.PORT }}\", \"inline\": true},
                 {\"name\": \"Migration\", \"value\": \"$MIGRATION_STATUS\", \"inline\": true},
                 {\"name\": \"Health Check\", \"value\": \"$HEALTH_STATUS\", \"inline\": true},
                 {\"name\": \"Status\", \"value\": \"$STATUS_TEXT\", \"inline\": false},
