@@ -67,6 +67,7 @@ cors:
     - "http://192.168.0.6:3000"
     - "https://192.168.0.6:3000"
     - "https://buildingownersoon.app"
+    - "https://dev.buildingownersoon.app"
     - "https://*.buildingownersoon.app"
     - "https://www.buildingownersoon.app"
     - "https://appleid.apple.com"
