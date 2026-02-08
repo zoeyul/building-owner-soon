@@ -54,6 +54,15 @@ apple:
   private-key: ${apple-private-key:}
   redirect-uri: ${apple-redirect-uri:https://api.buildingownersoon.app/oauth/apple}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     org.springframework.data.r2dbc: DEBUG
