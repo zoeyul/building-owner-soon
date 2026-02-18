@@ -2,7 +2,9 @@ package com.bos.backend.domain.transaction.repository
 
 import com.bos.backend.domain.transaction.entity.Transaction
 import com.bos.backend.domain.transaction.entity.TransactionWithCounterpart
+import com.bos.backend.domain.transaction.enum.TransactionType
 
+@Suppress("TooManyFunctions")
 interface TransactionRepository {
     suspend fun save(transaction: Transaction): Transaction
 
@@ -18,7 +20,16 @@ interface TransactionRepository {
 
     suspend fun findByUserId(userId: Long): List<Transaction>
 
+    suspend fun findActiveByUserId(userId: Long): List<Transaction>
+
+    suspend fun markCelebrationCompleted(id: Long): Boolean
+
     suspend fun findByUserIdWithCounterpart(userId: Long): List<TransactionWithCounterpart>
 
     suspend fun softDeleteById(id: Long): Boolean
+
+    suspend fun findCompletedByUserId(
+        userId: Long,
+        transactionType: TransactionType? = null,
+    ): List<Transaction>
 }

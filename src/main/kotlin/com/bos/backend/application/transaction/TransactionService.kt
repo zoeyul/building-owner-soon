@@ -10,6 +10,8 @@ import com.bos.backend.domain.transaction.enum.RepaymentType
 import com.bos.backend.domain.transaction.enum.TransactionType
 import com.bos.backend.domain.transaction.repository.RepaymentScheduleRepository
 import com.bos.backend.domain.transaction.repository.TransactionRepository
+import com.bos.backend.infrastructure.persistence.RepaymentScheduleCustomRepository
+import com.bos.backend.presentation.transaction.dto.CompletedTransactionListItemDTO
 import com.bos.backend.presentation.transaction.dto.CreateTransactionRequestDTO
 import com.bos.backend.presentation.transaction.dto.DebtSummaryResponseDTO
 import com.bos.backend.presentation.transaction.dto.RelationshipSummaryDTO
@@ -35,6 +37,7 @@ class TransactionService(
     private val repaymentScheduleRepository: RepaymentScheduleRepository,
     private val userService: UserService,
     private val counterpartService: com.bos.backend.application.counterpart.CounterpartService,
+    private val repaymentScheduleCustomRepository: RepaymentScheduleCustomRepository,
     private val transactionalOperator: TransactionalOperator,
     private val characterBuilder: com.bos.backend.application.builder.CharacterBuilder,
     private val repaymentScheduleCalculator: RepaymentScheduleCalculator,
@@ -415,8 +418,37 @@ class TransactionService(
         )
     }
 
+    suspend fun getCompletedTransactions(
+        userId: Long,
+        transactionType: TransactionType? = null,
+    ): List<CompletedTransactionListItemDTO> {
+        val transactions = transactionRepository.findCompletedByUserId(userId, transactionType)
+
+        if (transactions.isEmpty()) {
+            return emptyList()
+        }
+
+        val transactionIds = transactions.mapNotNull { it.id }
+        val completionDates = repaymentScheduleCustomRepository.findLastCompletedDatesByTransactionIds(transactionIds)
+
+        return transactions.map { transaction ->
+            val completionDate =
+                completionDates[transaction.id]
+                    ?: transaction.updatedAt.atZone(ZoneId.of("Asia/Seoul")).toLocalDate()
+
+            CompletedTransactionListItemDTO(
+                id = transaction.id!!,
+                transactionType = transaction.transactionType,
+                counterpartName = transaction.counterpartName,
+                counterpartCharacter = transaction.counterpartCharacter,
+                totalAmount = transaction.totalAmount,
+                completionDate = completionDate,
+            )
+        }
+    }
+
     suspend fun getRelationships(userId: Long): List<RelationshipSummaryDTO> {
-        val transactions = transactionRepository.findByUserId(userId)
+        val transactions = transactionRepository.findActiveByUserId(userId)
 
         if (transactions.isEmpty()) {
             return emptyList()
@@ -458,8 +490,28 @@ class TransactionService(
                 upcomingTransactionInfo = upcomingInfo,
                 transactionId = firstTx.id!!,
                 transactionUuid = firstTx.uuid,
+                isCompleted = firstTx.isCompleted(),
             )
         }
+    }
+
+    suspend fun completeCelebration(
+        userId: Long,
+        transactionId: Long,
+    ) {
+        val transaction =
+            transactionRepository.findById(transactionId)
+                ?: throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+
+        if (transaction.userId != userId) {
+            throw CustomException(CommonErrorCode.RESOURCE_NOT_FOUND)
+        }
+
+        if (!transaction.isCompleted()) {
+            throw CustomException(CommonErrorCode.INVALID_PARAMETER)
+        }
+
+        transactionRepository.markCelebrationCompleted(transactionId)
     }
 
     private fun findUpcomingTransactionInfo(
@@ -499,6 +551,16 @@ class TransactionService(
                 transaction.monthlyAmount
             }
 
+        val completionDate =
+            if (transaction.isCompleted() && transactionId != null) {
+                val dates =
+                    repaymentScheduleCustomRepository.findLastCompletedDatesByTransactionIds(listOf(transactionId))
+                dates[transactionId]
+                    ?: transaction.updatedAt.atZone(ZoneId.of("Asia/Seoul")).toLocalDate()
+            } else {
+                null
+            }
+
         return TransactionResponseDTO(
             id = transaction.id!!,
             transactionUuid = transaction.uuid,
@@ -518,6 +580,7 @@ class TransactionService(
             paymentDay = transaction.paymentDay,
             createdAt = transaction.createdAt,
             updatedAt = transaction.updatedAt,
+            completionDate = completionDate,
         )
     }
 }

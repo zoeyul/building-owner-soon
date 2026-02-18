@@ -29,6 +29,8 @@ interface RepaymentScheduleCustomRepository {
         userId: Long?,
         transactionId: Long?,
     ): List<RepaymentSchedule>
+
+    suspend fun findLastCompletedDatesByTransactionIds(transactionIds: List<Long>): Map<Long, LocalDate>
 }
 
 @Suppress("LongMethod")
@@ -177,6 +179,35 @@ class RepaymentScheduleCustomRepositoryImpl(
 
         return spec.fetch().all().collectList().awaitSingle().map { row ->
             mapToRepaymentSchedule(row)
+        }
+    }
+
+    override suspend fun findLastCompletedDatesByTransactionIds(transactionIds: List<Long>): Map<Long, LocalDate> {
+        if (transactionIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        val placeholders = transactionIds.indices.joinToString(", ") { ":id$it" }
+
+        val sql =
+            """
+            SELECT transaction_id, MAX(actual_date) AS last_completed_date
+            FROM repayment_schedules
+            WHERE transaction_id IN ($placeholders)
+            AND status = 'COMPLETED'
+            AND actual_date IS NOT NULL
+            GROUP BY transaction_id
+            """.trimIndent()
+
+        var spec = databaseClient.sql(sql)
+        transactionIds.forEachIndexed { index, id ->
+            spec = spec.bind("id$index", id)
+        }
+
+        return spec.fetch().all().collectList().awaitSingle().associate { row ->
+            val transactionId = (row["transaction_id"] as Number).toLong()
+            val lastCompletedDate = row["last_completed_date"] as LocalDate
+            transactionId to lastCompletedDate
         }
     }
 

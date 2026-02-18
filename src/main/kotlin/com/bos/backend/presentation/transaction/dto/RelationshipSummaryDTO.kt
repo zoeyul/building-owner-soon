@@ -14,4 +14,5 @@ data class RelationshipSummaryDTO(
     val upcomingTransactionInfo: UpcomingTransactionInfoDTO?,
     val transactionId: Long,
     val transactionUuid: String,
+    val isCompleted: Boolean,
 )

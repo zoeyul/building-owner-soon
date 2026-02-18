@@ -27,4 +27,5 @@ data class TransactionResponseDTO(
     val paymentDay: Int?,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val completionDate: LocalDate? = null,
 )

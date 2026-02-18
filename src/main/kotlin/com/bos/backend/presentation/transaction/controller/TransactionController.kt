@@ -3,8 +3,10 @@ package com.bos.backend.presentation.transaction.controller
 import com.bos.backend.application.transaction.RepaymentCalculationService
 import com.bos.backend.application.transaction.RepaymentScheduleService
 import com.bos.backend.application.transaction.TransactionService
+import com.bos.backend.domain.transaction.enum.TransactionType
 import com.bos.backend.presentation.transaction.dto.CalculateRepaymentRequest
 import com.bos.backend.presentation.transaction.dto.CalculateRepaymentResponse
+import com.bos.backend.presentation.transaction.dto.CompletedTransactionListItemDTO
 import com.bos.backend.presentation.transaction.dto.CreateRepaymentRequestDTO
 import com.bos.backend.presentation.transaction.dto.CreateTransactionRequestDTO
 import com.bos.backend.presentation.transaction.dto.DebtSummaryResponseDTO
@@ -23,11 +25,13 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/transactions")
+@Suppress("TooManyFunctions")
 class TransactionController(
     private val transactionService: TransactionService,
     private val repaymentScheduleService: RepaymentScheduleService,
@@ -40,6 +44,21 @@ class TransactionController(
         @Valid @RequestBody createTransactionRequestDTO: CreateTransactionRequestDTO,
     ) {
         transactionService.createTransaction(userId.toLong(), createTransactionRequestDTO)
+    }
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    suspend fun getTransactions(
+        @AuthenticationPrincipal userId: String,
+        @RequestParam(required = false) status: String?,
+        @RequestParam(required = false) type: TransactionType?,
+    ): List<CompletedTransactionListItemDTO> {
+        if (status != null && status != "COMPLETED") {
+            throw com.bos.backend.application.CustomException(
+                com.bos.backend.application.CommonErrorCode.INVALID_PARAMETER,
+            )
+        }
+        return transactionService.getCompletedTransactions(userId.toLong(), type)
     }
 
     @GetMapping("/{id}")
@@ -69,6 +88,13 @@ class TransactionController(
         @AuthenticationPrincipal userId: String,
         @PathVariable id: Long,
     ): Unit = transactionService.deleteTransaction(userId.toLong(), id)
+
+    @PostMapping("/{id}/celebration-complete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    suspend fun completeCelebration(
+        @AuthenticationPrincipal userId: String,
+        @PathVariable id: Long,
+    ): Unit = transactionService.completeCelebration(userId.toLong(), id)
 
     @GetMapping("/{id}/repayment-schedules")
     @ResponseStatus(HttpStatus.OK)
